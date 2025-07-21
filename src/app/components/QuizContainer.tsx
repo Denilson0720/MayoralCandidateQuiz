@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QuestionCard from './QuestionCard';
 import ResultsCard from './ResultsCard';
-import { questions, type Question, type Option } from '@/questions';
+import { questions, type Question } from '@/questions';
 import { calculateQuizResults, saveQuizResults, loadQuizResults, type QuizResult, candidateValues } from '@/utilities';
 
 export default function QuizContainer() {
-  const letters = ["A", "B", "C", "D"];
+
   // track current question by ID instead of array index
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(questions[0].id);
   // keep track of question answers
@@ -28,10 +28,7 @@ export default function QuizContainer() {
     return questions.findIndex(q => q.id === id);
   }, []);
 
-  // Helper function to get question by ID
-  const getQuestionById = useCallback((id: number): Question | undefined => {
-    return questions.find(q => q.id === id);
-  }, []);
+
 
   // Helper function to get next question ID
   const getNextQuestionId = useCallback((currentId: number): number | null => {
@@ -301,7 +298,6 @@ export default function QuizContainer() {
   };
 
   const currentQuestionIndex = getQuestionIndexById(currentQuestionId);
-  const currentQuestion = getQuestionById(currentQuestionId);
   const answeredQuestions = Object.keys(answers).length;
   const completionPercentage = Math.round((answeredQuestions / questions.length) * 100);
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { QuizResult, CandidateMatch, shareResults, saveQuizResults } from '@/utilities';
+import { QuizResult, shareResults } from '@/utilities';
 import { questions } from '@/questions';
 
 interface ResultsCardProps {
@@ -29,7 +29,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
   };
 
   const topCandidate = results.candidateMatches[0];
-  const secondCandidate = results.candidateMatches[1];
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-cyan-200 via-slate-50 to-red-200 py-8">
@@ -241,7 +240,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
 
         {/* Follow-up Actions */}
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">What's Next?</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">What&apos;s Next?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="text-center p-6 border-2 border-gray-200 rounded-lg">
               <h3 className="text-xl font-bold mb-3">Learn More About Candidates</h3>
@@ -265,9 +264,9 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
             
             <div className="text-center p-6 border-2 border-gray-200 rounded-lg">
               <h3 className="text-xl font-bold mb-3">Get Involved</h3>
-              <p className="text-gray-600 mb-4">
-                Make sure you're registered to vote and stay informed about the election.
-              </p>
+                              <p className="text-gray-600 mb-4">
+                  Make sure you&apos;re registered to vote and stay informed about the election.
+                </p>
               <div className="space-y-2">
                 <a 
                   href="https://voter.svrs.nj.gov/register" 

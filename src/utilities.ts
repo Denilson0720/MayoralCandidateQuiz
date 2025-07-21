@@ -1,3 +1,5 @@
+import { Question } from '@/questions';
+
 export enum candidateKeys {
     MUSSAB = 'MUSSAB',
     SOLOMON = 'SOLOMON',
@@ -98,7 +100,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
 };
 
 // Calculate quiz results based on user answers
-export function calculateQuizResults(answers: Record<number, number>, questions: any[]): QuizResult {
+export function calculateQuizResults(answers: Record<number, number>, questions: Question[]): QuizResult {
     const candidateScores: Record<string, number> = {};
     const candidateMatches: Record<string, number> = {};
     const totalPossibleMatches: Record<string, number> = {};
@@ -122,11 +124,11 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
                 candidateMatches[candidate]++;
             });
             
-            // Count total possible matches for each candidate across all options
-            question.options.forEach((option: any) => {
-                option.candidates.forEach((candidate: string) => {
-                    totalPossibleMatches[candidate]++;
-                });
+                        // Count total possible matches for each candidate across all options
+            question.options.forEach((option) => {
+              option.candidates.forEach((candidate: string) => {
+                totalPossibleMatches[candidate]++;
+              });
             });
         }
     });
