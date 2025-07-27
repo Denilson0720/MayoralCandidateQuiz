@@ -8,6 +8,28 @@ export enum candidateKeys {
     MCGREEVY = 'MCGREEVY'
 }
 
+// Map question IDs to their categories
+function getQuestionCategory(questionId: number): string {
+  const categoryMap: Record<number, string> = {
+    1: 'transportation',
+    2: 'transportation', 
+    3: 'safety',
+    4: 'safety',
+    5: 'housing',
+    6: 'housing',
+    7: 'education',
+    8: 'education',
+    9: 'social',
+    10: 'social',
+    11: 'governance',
+    12: 'transportation',
+    13: 'governance',
+    14: 'governance',
+    15: 'governance'
+  };
+  return categoryMap[questionId] || 'other';
+}
+
 type CandidateInfo = { 
     name: string; 
     url: string;
@@ -27,6 +49,7 @@ export interface QuizResult {
     completionPercentage: number;
     timestamp: string;
     answers: Record<number, number>;
+    selectedCategories: string[];
 }
 
 export interface CandidateMatch {
@@ -100,7 +123,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
 };
 
 // Calculate quiz results based on user answers
-export function calculateQuizResults(answers: Record<number, number>, questions: Question[]): QuizResult {
+export function calculateQuizResults(answers: Record<number, number>, questions: Question[], selectedCategories: string[] = []): QuizResult {
     const candidateScores: Record<string, number> = {};
     const candidateMatches: Record<string, number> = {};
     const totalPossibleMatches: Record<string, number> = {};
@@ -112,25 +135,30 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
         totalPossibleMatches[candidate] = 0;
     });
 
-    // Calculate scores based on answers
+        // Calculate scores based on answers
     questions.forEach(question => {
-        const userAnswer = answers[question.id];
-        if (userAnswer !== undefined) {
-            const selectedOption = question.options[userAnswer];
-            
-            // Count matches for each candidate in the selected option
-            selectedOption.candidates.forEach((candidate: string) => {
-                candidateScores[candidate]++;
-                candidateMatches[candidate]++;
-            });
-            
-                        // Count total possible matches for each candidate across all options
-            question.options.forEach((option) => {
-              option.candidates.forEach((candidate: string) => {
-                totalPossibleMatches[candidate]++;
-              });
-            });
-        }
+      const userAnswer = answers[question.id];
+      if (userAnswer !== undefined) {
+        const selectedOption = question.options[userAnswer];
+        
+        // Determine if this question belongs to a selected category
+        const questionCategory = getQuestionCategory(question.id);
+        const isWeightedQuestion = selectedCategories.includes(questionCategory);
+        const weight = isWeightedQuestion ? 2 : 1; // Double points for selected categories
+        
+        // Count matches for each candidate in the selected option
+        selectedOption.candidates.forEach((candidate: string) => {
+          candidateScores[candidate] += weight;
+          candidateMatches[candidate] += weight;
+        });
+        
+        // Count total possible matches for each candidate across all options
+        question.options.forEach((option) => {
+          option.candidates.forEach((candidate: string) => {
+            totalPossibleMatches[candidate] += weight;
+          });
+        });
+      }
     });
 
     // Calculate match percentages and create results
@@ -161,7 +189,8 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
         answeredQuestions: Object.keys(answers).length,
         completionPercentage: Math.round((Object.keys(answers).length / questions.length) * 100),
         timestamp: new Date().toISOString(),
-        answers
+        answers,
+        selectedCategories
     };
 }
 

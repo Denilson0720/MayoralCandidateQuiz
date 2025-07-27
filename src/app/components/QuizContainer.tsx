@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QuestionCard from './QuestionCard';
 import ResultsCard from './ResultsCard';
+import CategorySelection, { categories } from './CategorySelection';
 import { questions, type Question } from '@/questions';
 import { calculateQuizResults, saveQuizResults, loadQuizResults, type QuizResult, candidateValues } from '@/utilities';
 
@@ -14,6 +15,9 @@ export default function QuizContainer() {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   // flag for showing progress bar,...etc
   const [quizStarted,setQuizStarted] = useState<boolean>(false);
+  // track category selection
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoriesSelected, setCategoriesSelected] = useState<boolean>(false);
   // track navigation state
   const [isNavigating, setIsNavigating] = useState(false);
   // track quiz completion and results
@@ -86,16 +90,14 @@ export default function QuizContainer() {
   }, [currentQuestionId, showSubmit, quizCompleted, getQuestionIndexById]);
 
   const handleSubmitQuiz = () => {
-    // Calculate results
-    const results = calculateQuizResults(answers, questions);
+    // Calculate initial results without category weighting
+    const results = calculateQuizResults(answers, questions, []);
     setQuizResults(results);
     setQuizCompleted(true);
+    setCategoriesSelected(false); // Reset to show category selection
     setShowSubmit(false);
     
-    // Save results to localStorage
-    saveQuizResults(results);
-    
-    // Scroll to results
+    // Scroll to top for category selection
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 500);
@@ -270,6 +272,8 @@ export default function QuizContainer() {
     setCurrentQuestionId(questions[0].id);
     setAnswers({});
     setQuizStarted(false);
+    setCategoriesSelected(false);
+    setSelectedCategories([]);
     setIsNavigating(false);
     setQuizCompleted(false);
     setQuizResults(null);
@@ -281,6 +285,7 @@ export default function QuizContainer() {
 
   const handleStartQuiz = () => {
     setQuizStarted(true);
+    setCategoriesSelected(true); // Allow questions to be shown
     setCurrentQuestionId(questions[0].id);
     setIsNavigating(true);
     
@@ -297,12 +302,38 @@ export default function QuizContainer() {
     }, 100);
   };
 
+  const handleCategoriesSelected = (categories: string[]) => {
+    setSelectedCategories(categories);
+    setCategoriesSelected(true);
+    
+    // Recalculate results with category weighting
+    if (quizResults) {
+      const weightedResults = calculateQuizResults(answers, questions, categories);
+      setQuizResults(weightedResults);
+      
+      // Save final results to localStorage
+      saveQuizResults(weightedResults);
+    }
+    
+    // Scroll to results
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  };
+
   const currentQuestionIndex = getQuestionIndexById(currentQuestionId);
   const answeredQuestions = Object.keys(answers).length;
   const completionPercentage = Math.round((answeredQuestions / questions.length) * 100);
 
-  // Show results if quiz is completed
-  if (quizCompleted && quizResults) {
+  // Show category selection after quiz completion
+  if (quizCompleted && quizResults && !categoriesSelected) {
+    return (
+      <CategorySelection onCategoriesSelected={handleCategoriesSelected} />
+    );
+  }
+
+  // Show results if quiz is completed and categories are selected
+  if (quizCompleted && quizResults && categoriesSelected) {
     return (
       <div className="border-2 border-red-500">
         <ResultsCard 
@@ -316,38 +347,38 @@ export default function QuizContainer() {
   return (
     <div className="">
       {/* LANDING PAGE */}
-      <section className="min-h-screen text-center flex">
-          <div className = 'flex flex-col justify-center items-center w-[60%]'>
-            <h1 className="text-5xl font-bold text-gray-900 col-span-3 grid-row-2d">
+      <section className="min-h-screen text-center flex flex-col lg:flex-row p-10">
+          <div className='flex flex-col justify-center items-center w-full lg:w-[60%] px-4 lg:px-8'>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 lg:mb-8 title-font">
               Jersey City Mayoral Candidate Quiz
             </h1>
-            <p className="text-3xl text-gray-600 my-4">
+            <p className="text-xl md:text-2xl lg:text-3xl text-gray-600 my-4 px-4">
               Who should you support for mayor of Jersey City?
             </p>
-            <div className='flex'>
+            <div className='flex flex-col sm:flex-row gap-4 w-full max-w-md'>
               <button 
                 onClick={handleStartQuiz}
                 disabled={isNavigating}
-                className="bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-8 rounded-lg text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
               >
                 {isNavigating ? 'Starting...' : 'Start Quiz'}
               </button>
               <button 
-                className="bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-8 rounded-lg text-lg transition-colors"
+                className="bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg transition-colors w-full sm:w-auto"
               >
                 View Candidates
               </button>
             </div>
         </div>
-        <div className='w-[40%] flex flex-col justify-center items-center px-8'>
+        <div className='w-full lg:w-[40%] flex flex-col justify-center items-center px-4 lg:px-8 py-8 lg:py-0'>
           {/* Candidate Carousel */}
-          <div className="relative w-full max-w-sm">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Meet the Candidates</h2>
-              <p className="text-gray-600">Take the quiz to see who aligns with your views</p>
+                      <div className="relative w-full max-w-sm">
+            <div className="text-center mb-6 lg:mb-8">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Meet the Candidates</h2>
+              <p className="text-sm md:text-base text-gray-600">Take the quiz to see who aligns with your views</p>
             </div>
             
-            <div className="relative h-80">
+            <div className="relative h-64 md:h-80">
               {Object.entries(candidateValues).map(([key, candidate], index) => (
                 <div
                   key={key}
@@ -360,32 +391,32 @@ export default function QuizContainer() {
                   }`}
                 >
                   <div className="text-center h-full flex flex-col justify-center">
-                    <div className="relative mb-6">
+                    <div className="relative mb-4 lg:mb-6">
                       <img 
                         src={candidate.url} 
                         alt={candidate.name}
-                        className="w-48 h-48 mx-auto rounded-full object-cover border-4 border-white shadow-lg"
+                        className="w-32 h-32 md:w-48 md:h-48 mx-auto rounded-full object-cover border-4 border-white shadow-lg"
                       />
-                      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white px-4 py-1 rounded-full shadow-md border">
-                        <span className="text-sm font-semibold text-gray-800">
+                      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white px-3 md:px-4 py-1 rounded-full shadow-md border">
+                        <span className="text-xs md:text-sm font-semibold text-gray-800">
                           {index + 1} of {Object.keys(candidateValues).length}
                         </span>
                       </div>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{candidate.name}</h3>
-                    <p className="text-gray-600 text-sm max-w-xs mx-auto leading-relaxed">{candidate.bio}</p>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">{candidate.name}</h3>
+                    <p className="text-xs md:text-sm text-gray-600 max-w-xs mx-auto leading-relaxed px-2">{candidate.bio}</p>
                   </div>
                 </div>
               ))}
             </div>
             
             {/* Carousel Navigation Dots */}
-            <div className="flex justify-center space-x-2 mt-8">
+            <div className="flex justify-center space-x-2 mt-6 lg:mt-8">
               {Object.keys(candidateValues).map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentCandidateIndex(index)}
-                  className={`w-3 h-3 rounded-full transition-colors ${
+                  className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors ${
                     index === currentCandidateIndex
                       ? 'bg-blue-600'
                       : 'bg-gray-300 hover:bg-gray-400'
@@ -397,9 +428,41 @@ export default function QuizContainer() {
         </div>
       </section>
 
-      {/* Questions Section - Only show when quiz has started */}
-      {quizStarted && (
-        <section className="">
+
+
+      {/* Questions Section - Only show when categories are selected */}
+      {categoriesSelected && (
+        <section className="pt-16 md:pt-0 pb-20 md:pb-24">
+          {/* Mobile Sticky Progress Dots - Only show on mobile */}
+          <div className="sticky top-0 z-50 md:hidden bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- py-3">
+            <div className="flex justify-center items-center px-4">
+              {/* <button
+                onClick={handleResetQuiz}
+                disabled={isNavigating}
+                className="text-red-600 hover:text-red-700 text-sm font-medium transition-colors"
+              >
+                Reset Quiz
+              </button> */}
+              <div className="flex space-x-2">
+                {questions.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index < currentQuestionIndex
+                        ? 'bg-green-500' // Completed questions
+                        : index === currentQuestionIndex
+                        ? 'bg-blue-500' // Current question
+                        : 'bg-gray-300' // Future questions
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="text-xs text-gray-600 font-medium title-font ml-4">
+                {currentQuestionIndex + 1}/{questions.length}
+              </div>
+            </div>
+          </div>
+          
           <div className="">
             {questions.map((question, index) => (
               <div 
@@ -429,71 +492,107 @@ export default function QuizContainer() {
         </section>
       )}
 
-      {/* Footer - Only show when quiz has started */}
-      {quizStarted && (
-        <footer className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 z-50">
-          <span>index: {currentQuestionIndex}</span>
-          <span>id: {currentQuestionId}</span>
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            {/* Progress */}
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Question {currentQuestionIndex + 1} of {questions.length}
-              </span>
-              <div className="w-32 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-                ></div>
+      {/* Desktop Footer - Only show on tablet and desktop */}
+      {categoriesSelected && (
+        <footer className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-2 md:p-4 z-50 hidden md:block">
+          <div className="max-w-4xl mx-auto">
+            {/* Progress - Mobile Stacked */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4 mb-2 md:mb-0">
+              <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-4">
+                <span className="text-xs md:text-sm text-gray-600">
+                  Question {currentQuestionIndex + 1} of {questions.length}
+                </span>
+                <div className="w-24 md:w-32 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+                  ></div>
+                </div>
+                <span className="text-xs md:text-sm text-gray-600">
+                  {completionPercentage}% Complete
+                </span>
               </div>
-              <span className="text-sm text-gray-600">
-                {completionPercentage}% Complete
-              </span>
-            </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex space-x-4">
-              <button
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestionIndex === 0 || isNavigating}
-                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                  currentQuestionIndex === 0 || isNavigating
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                }`}
-              >
-                {isNavigating ? '...' : 'Previous'}
-              </button>
-
-              {showSubmit ? (
+              {/* Navigation Buttons - Mobile Optimized */}
+              <div className="flex flex-wrap justify-center gap-2 md:gap-4">
                 <button
-                  onClick={handleSubmitQuiz}
-                  disabled={isNavigating}
-                  className="px-8 py-2 rounded-lg font-semibold transition-colors bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isNavigating ? '...' : 'Submit Quiz'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleNextQuestion}
-                  disabled={currentQuestionIndex === questions.length - 1 || isNavigating}
-                  className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                    currentQuestionIndex === questions.length - 1 || isNavigating
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0 || isNavigating}
+                  className={`px-3 md:px-6 py-2 rounded-lg font-semibold transition-colors text-xs md:text-sm ${
+                    currentQuestionIndex === 0 || isNavigating
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                   }`}
                 >
-                  {isNavigating ? '...' : 'Next'}
+                  {isNavigating ? '...' : 'Previous'}
                 </button>
-              )}
-              <button
-                onClick={handleResetQuiz}
-                disabled={isNavigating}
-                className="px-6 py-2 rounded-lg font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Reset Quiz
-              </button>
+
+                {showSubmit ? (
+                  <button
+                    onClick={handleSubmitQuiz}
+                    disabled={isNavigating}
+                    className="px-4 md:px-8 py-2 rounded-lg font-semibold transition-colors bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
+                  >
+                    {isNavigating ? '...' : 'Submit Quiz'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNextQuestion}
+                    disabled={currentQuestionIndex === questions.length - 1 || isNavigating}
+                    className={`px-3 md:px-6 py-2 rounded-lg font-semibold transition-colors text-xs md:text-sm ${
+                      currentQuestionIndex === questions.length - 1 || isNavigating
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {isNavigating ? '...' : 'Next'}
+                  </button>
+                )}
+                <button
+                  onClick={handleResetQuiz}
+                  disabled={isNavigating}
+                  className="px-3 md:px-6 py-2 rounded-lg font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
+                >
+                  Reset Quiz
+                </button>
+              </div>
             </div>
+          </div>
+        </footer>
+      )}
+
+      {/* Mobile Sticky Footer - Only show on mobile */}
+      {categoriesSelected && (
+        <footer className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- p-3 z-50 md:hidden">
+          <div className="flex gap-3 max-w-md mx-auto">
+            <button
+              onClick={handleSkipQuestion}
+              className="flex-1 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors text-xs"
+            >
+              Skip
+            </button>
+            
+            {showSubmit ? (
+              <button
+                onClick={handleSubmitQuiz}
+                disabled={isNavigating}
+                className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                disabled={currentQuestionIndex === questions.length - 1 || isNavigating || answers[questions[currentQuestionIndex]?.id] === undefined}
+                className={`flex-1 px-3 py-2 font-semibold rounded-lg transition-colors text-xs ${
+                  currentQuestionIndex === questions.length - 1 || isNavigating || answers[questions[currentQuestionIndex]?.id] === undefined
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                Next
+              </button>
+            )}
           </div>
         </footer>
       )}
