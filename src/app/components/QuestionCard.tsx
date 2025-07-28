@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { candidateValues } from '@/utilities';
+import { CandidateExplanation } from '@/questions';
 
 interface Option {
   text: string;
   candidates: string[];
+  explanations?: CandidateExplanation[];
 }
 
 interface Question {
@@ -27,7 +29,7 @@ interface QuestionCardProps {
   isLast: boolean;
   canProceed: boolean;
 }
-const letters = ["A", "B", "C", "D"]
+const letters = ["A", "B", "C", "D","E"]
 
 export default function QuestionCard({
   question,
@@ -44,6 +46,24 @@ export default function QuestionCard({
   canProceed
 }: QuestionCardProps) {
   const [expandedOption, setExpandedOption] = useState<number | null>(null);
+  const [showDetails, setShowDetails] = useState<number | null>(null);
+
+  // Helper function to parse explanation text and separate quotes from remarks
+  const parseExplanation = (explanation: string) => {
+    // Check if the text contains a quote (starts with a quote and has a closing quote)
+    const quoteMatch = explanation.match(/^"([^"]+)"\s*(.+)$/);
+    if (quoteMatch) {
+      return {
+        quote: quoteMatch[1],
+        remark: quoteMatch[2].trim()
+      };
+    }
+    // If no quote pattern found, return the entire text as a remark
+    return {
+      quote: null,
+      remark: explanation
+    };
+  };
 
   const handleOptionClick = (index: number) => {
     if (selectedAnswer === index) {
@@ -57,14 +77,14 @@ export default function QuestionCard({
   };
 
   return (
-    <div className="min-h-screen text-center flex flex-col items-center justify-center bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 px-4 py-8">
+    <div className="min-h-screen text-center flex flex-col items-center justify-center bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 px-4 py-16">
         {/* Question */}
-        <h2 className="w-full max-w-2xl text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-6 md:mb-8 px-2">
+        <h2 className="w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-6 md:mb-8 px-2">
           {question.question}
         </h2>
 
         {/* Answer Options */}
-        <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 w-full max-w-2xl flex flex-col justify-center items-center">
+        <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl flex flex-col justify-center items-center">
           {question.options.map((option, index) => (
             <div key={index} className="w-full">
               <div
@@ -84,7 +104,7 @@ export default function QuestionCard({
                 className={`
                   overflow-hidden transition-all duration-300 ease-in-out bg-white border-x-2 border-b-2 rounded-b-lg border-t-0
                   ${expandedOption === index 
-                    ? 'max-h-96 opacity-100 translate-y-0' 
+                    ? 'max-h-[2000px] opacity-100 translate-y-0' 
                     : 'max-h-0 opacity-0 translate-y-2'
                   }
                 `}
@@ -96,22 +116,90 @@ export default function QuestionCard({
                   <div className="flex flex-wrap gap-2 md:gap-3 justify-center">
                     {option.candidates.map((candidate, candidateIndex) => (
                       <div key={`${index}-${candidateIndex}`} className='flex flex-col items-center'>
-                        <img 
-                          className='w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg' 
-                          src={candidateValues[candidate].url} 
-                          alt={candidateValues[candidate].name}
-                          onError={(e) => {
-                            // Fallback for broken images
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                        <span className="text-black text-xs md:text-sm font-medium mt-1 text-center">
-                          {candidateValues[candidate].name}
-                        </span>
+                        {candidateValues[candidate] ? (
+                          <>
+                            <img 
+                              className='w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg' 
+                              src={candidateValues[candidate].url} 
+                              alt={candidateValues[candidate].name}
+                              onError={(e) => {
+                                // Fallback for broken images
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            <span className="text-black text-xs md:text-sm font-medium mt-1 text-center">
+                              {candidateValues[candidate].name}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className='w-16 h-16 md:w-20 md:h-20 bg-blue-500 rounded-lg flex items-center justify-center'>
+                              <span className="text-white text-xs md:text-sm font-bold">Multiple</span>
+                            </div>
+                            <span className="text-black text-xs md:text-sm font-medium mt-1 text-center">
+                              {candidate}
+                            </span>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
+                  
+                  {/* More Details Button */}
+                  {option.explanations && option.explanations.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => setShowDetails(showDetails === index ? null : index)}
+                        className="text-blue-600 hover:text-blue-800 text-xs md:text-sm font-medium transition-colors"
+                      >
+                        {showDetails === index ? 'Hide Details' : 'More Details'}
+                      </button>
+                      
+                      {/* Details Dropdown */}
+                      {showDetails === index && (
+                        <div className="mt-3 space-y-3">
+                          {option.explanations.map((explanation, expIndex) => (
+                            <div key={expIndex} className="bg-gray-50 p-3 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                {candidateValues[explanation.candidate] ? (
+                                  <img 
+                                    className='w-8 h-8 rounded-full object-cover flex-shrink-0' 
+                                    src={candidateValues[explanation.candidate].url} 
+                                    alt={candidateValues[explanation.candidate].name}
+                                  />
+                                ) : (
+                                  <div className='w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0'>
+                                    <span className="text-white text-xs font-bold">M</span>
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <h5 className="text-xs md:text-sm font-semibold text-gray-900 mb-1">
+                                    {candidateValues[explanation.candidate] ? candidateValues[explanation.candidate].name : explanation.candidate}
+                                  </h5>
+                                  {(() => {
+                                    const parsed = parseExplanation(explanation.explanation);
+                                    return (
+                                      <div className="space-y-2">
+                                        {parsed.quote && (
+                                          <blockquote className="text-xs md:text-sm text-gray-600 italic border-l-2 border-gray-300 pl-3">
+                                            "{parsed.quote}"
+                                          </blockquote>
+                                        )}
+                                        <p className="text-xs md:text-sm text-gray-700 leading-relaxed">
+                                          {parsed.remark}
+                                        </p>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
