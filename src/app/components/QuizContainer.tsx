@@ -25,6 +25,7 @@ export default function QuizContainer() {
   const [quizResults, setQuizResults] = useState<QuizResult | null>(null);
   const [showSubmit, setShowSubmit] = useState(false);
   const [currentCandidateIndex, setCurrentCandidateIndex] = useState(0);
+  const [isViewingQuestions, setIsViewingQuestions] = useState(false);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Helper function to get question index by ID
@@ -189,6 +190,35 @@ export default function QuizContainer() {
     };
   }, [quizStarted, quizCompleted, currentQuestionId, isNavigating]);
 
+  // Effect to track when user is viewing questions vs landing page
+  useEffect(() => {
+    if (!quizStarted || quizCompleted) return;
+
+    const checkIfViewingQuestions = () => {
+      const questionsSection = document.querySelector('section[class*="pt-16"]');
+      if (questionsSection) {
+        const rect = questionsSection.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        // Check if questions section is visible in viewport
+        const isVisible = rect.top < viewportHeight && rect.bottom > 0;
+        setIsViewingQuestions(isVisible);
+      }
+    };
+
+    checkIfViewingQuestions();
+    
+    const handleScroll = () => {
+      checkIfViewingQuestions();
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [quizStarted, quizCompleted]);
+
   // Handle smooth scrolling to questions
   useEffect(() => {
     if (quizStarted && !isNavigating && !quizCompleted) {
@@ -325,6 +355,31 @@ export default function QuizContainer() {
   const answeredQuestions = Object.keys(answers).length;
   const completionPercentage = Math.round((answeredQuestions / questions.length) * 100);
 
+  // Calculate topic progress based on the 6 categories
+  const calculateTopicProgress = () => {
+    const topicProgress: { [topic: string]: { answered: number; total: number } } = {};
+    
+    // Initialize progress for each category
+    categories.forEach(category => {
+      topicProgress[category.name] = { answered: 0, total: category.questionIds.length };
+    });
+    
+    // Count answered questions per category
+    Object.entries(answers).forEach(([questionId, answerIndex]) => {
+      const questionIdNum = parseInt(questionId);
+      // Find which category this question belongs to
+      categories.forEach(category => {
+        if (category.questionIds.includes(questionIdNum)) {
+          topicProgress[category.name].answered += 1;
+        }
+      });
+    });
+    
+    return topicProgress;
+  };
+
+  const topicProgress = calculateTopicProgress();
+
   // Show category selection after quiz completion
   if (quizCompleted && quizResults && !categoriesSelected) {
     return (
@@ -345,7 +400,20 @@ export default function QuizContainer() {
   }
 
   return (
-    <div className="">
+    // gradient here from-cyan-200 from- via-slate-50 via-50% to-red-200 to-
+    <div className="min-h-screen w-full bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- relative" style={{
+      // backgroundImage: 'url(/jc_skyline.png)',
+      // backgroundSize: 'cover',
+      // backgroundPosition: 'bottom',
+      // backgroundAttachment: 'fixed',
+      // backgroundRepeat: 'no-repeat',
+      // minHeight: '100vh'
+    }}>
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-cyan-200/30 from- via-slate-50/30 via-50% to-red-200/30 pointer-events-none"></div>
+      
+      {/* Content */}
+      <div className="relative z-10">
       {/* LANDING PAGE */}
       <section className="min-h-screen text-center flex flex-col lg:flex-row p-10">
           <div className='flex flex-col justify-center items-center w-full lg:w-[60%] px-4 lg:px-8'>
@@ -433,6 +501,33 @@ export default function QuizContainer() {
       {/* Questions Section - Only show when categories are selected */}
       {categoriesSelected && (
         <section className="pt-16 md:pt-0 pb-20 md:pb-24">
+          {/* Sticky Category Progress */}
+          <div className={`fixed top-1/2 right-4 z-50 w-80 bg-gray-50/50 backdrop-blur-sm rounded-lg shadow-xl p-4 border border-gray-200/50 hidden lg:block transform -translate-y-1/2 transition-opacity duration-300 ${
+            isViewingQuestions ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}>
+            <h3 className="text-xl font-bold text-black mb-3">Category Progress</h3>
+            <div className="space-y-2">
+              {Object.entries(topicProgress).map(([topic, progress]) => {
+                const typedProgress = progress as { answered: number; total: number };
+                return (
+                  <div key={topic} className="flex items-center justify-between">
+                    <span className="text-lg font-medium text-black truncate pr-2">{topic}</span>
+                    <div className="flex space-x-1 flex-shrink-0">
+                      {Array.from({ length: typedProgress.total }, (_, index) => (
+                        <div
+                          key={index}
+                          className={`w-2 h-2 rounded-full border border-gray-400 ${
+                            index < typedProgress.answered ? 'bg-black' : 'bg-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Mobile Sticky Progress Dots - Only show on mobile */}
           <div className="sticky top-0 z-50 md:hidden bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- py-3">
             <div className="flex justify-center items-center px-4">
@@ -597,7 +692,7 @@ export default function QuizContainer() {
         </footer>
       )}
 
-
+      </div>
     </div>
   );
 }

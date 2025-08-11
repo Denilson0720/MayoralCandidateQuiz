@@ -14,18 +14,17 @@ function getQuestionCategory(questionId: number): string {
     1: 'transportation',
     2: 'transportation', 
     3: 'safety',
-    4: 'safety',
+    4: 'housing',
     5: 'housing',
-    6: 'housing',
+    6: 'education',
     7: 'education',
-    8: 'education',
+    8: 'social',
     9: 'social',
-    10: 'social',
-    11: 'governance',
-    12: 'transportation',
+    10: 'governance',
+    11: 'transportation',
+    12: 'governance',
     13: 'governance',
-    14: 'governance',
-    15: 'governance'
+    14: 'governance'
   };
   return categoryMap[questionId] || 'other';
 }
