@@ -18,37 +18,37 @@ const categories: Category[] = [
     id: 'transportation',
     name: 'Transportation & Street Design',
     description: 'How residents move around the city and infrastructure support',
-    questionIds: [1, 2, 12]
+    questionIds: [0, 1, 10]
   },
   {
     id: 'safety',
     name: 'Public Safety & Emergency Response',
     description: 'Safety in neighborhoods, police presence, mental health crisis response',
-    questionIds: [3, 4]
+    questionIds: [2]
   },
   {
     id: 'housing',
     name: 'Housing & Development',
     description: 'Housing affordability, gentrification, rent control, development priorities',
-    questionIds: [5, 6]
+    questionIds: [3, 4]
   },
   {
     id: 'education',
     name: 'Education',
     description: 'Improving public schools, managing charter school growth, education reform',
-    questionIds: [7, 8]
+    questionIds: [5, 6]
   },
   {
     id: 'social',
     name: 'Social Services & Community Wellbeing',
     description: 'Immigration, healthcare access, mental health, inclusive communities',
-    questionIds: [9, 10]
+    questionIds: [7, 8]
   },
   {
     id: 'governance',
     name: 'Governance, Climate, and Leadership',
     description: 'Climate change response, transparency, collaboration, leadership style',
-    questionIds: [11, 13, 14, 15]
+    questionIds: [9, 11, 12, 13]
   }
 ];
 
@@ -83,7 +83,7 @@ export default function CategorySelection({ onCategoriesSelected }: CategorySele
             Select Your Priority Areas
           </h1>
           <p className="text-lg md:text-xl text-gray-600 mb-6">
-            Great job completing the quiz! Now choose 1-3 categories that matter most to you. We'll recalculate your results with these areas weighted more heavily.
+            Great job completing the quiz! Now choose 1-3 categories that matter most to you. We&apos;ll recalculate your results with these areas weighted more heavily.
           </p>
           <div className="text-sm text-gray-500">
             Selected: {selectedCategories.length}/3

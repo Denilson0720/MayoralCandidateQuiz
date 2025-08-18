@@ -115,7 +115,7 @@ export default function QuizContainer() {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
             const questionId = parseInt(entry.target.getAttribute('data-question-id') || '0');
-            if (questionId && questionId !== currentQuestionId) {
+            if (typeof questionId === 'number' && questionId !== currentQuestionId) {
               console.log('Observer detected question change:', { from: currentQuestionId, to: questionId });
               setCurrentQuestionId(questionId);
             }
@@ -161,7 +161,7 @@ export default function QuizContainer() {
         if (visibility > maxVisibility) {
           maxVisibility = visibility;
           const questionId = parseInt(element.getAttribute('data-question-id') || '0');
-          if (questionId) {
+          if (typeof questionId === 'number' && questionId !== currentQuestionId) {
             mostVisibleQuestionId = questionId;
           }
         }
@@ -351,32 +351,37 @@ export default function QuizContainer() {
     }, 100);
   };
 
-  const currentQuestionIndex = getQuestionIndexById(currentQuestionId);
-  const answeredQuestions = Object.keys(answers).length;
-  const completionPercentage = Math.round((answeredQuestions / questions.length) * 100);
+  // Helper: Get all unique, valid question IDs from categories
+  const validQuestionIds = new Set<number>(questions.map(q => q.id));
+  const allCategoryQuestionIds = Array.from(new Set(categories.flatMap(cat => cat.questionIds))).filter(id => validQuestionIds.has(id));
 
-  // Calculate topic progress based on the 6 categories
+  // Helper: Calculate topic progress based on categories and valid questions
   const calculateTopicProgress = () => {
     const topicProgress: { [topic: string]: { answered: number; total: number } } = {};
-    
     // Initialize progress for each category
     categories.forEach(category => {
-      topicProgress[category.name] = { answered: 0, total: category.questionIds.length };
+      // Only count valid question IDs
+      const filteredIds = category.questionIds.filter(id => validQuestionIds.has(id));
+      topicProgress[category.name] = { answered: 0, total: filteredIds.length };
     });
-    
     // Count answered questions per category
     Object.entries(answers).forEach(([questionId, answerIndex]) => {
       const questionIdNum = parseInt(questionId);
-      // Find which category this question belongs to
+      if (!validQuestionIds.has(questionIdNum)) return;
       categories.forEach(category => {
         if (category.questionIds.includes(questionIdNum)) {
           topicProgress[category.name].answered += 1;
         }
       });
     });
-    
     return topicProgress;
   };
+
+  // Helper: Get the index of the current question in the questions array
+  const currentQuestionIndex = getQuestionIndexById(currentQuestionId);
+  // Helper: Calculate completion percentage based on valid questions
+  const answeredQuestions = Object.keys(answers).filter(qid => validQuestionIds.has(Number(qid))).length;
+  const completionPercentage = Math.round((answeredQuestions / questions.length) * 100);
 
   const topicProgress = calculateTopicProgress();
 
@@ -421,7 +426,7 @@ export default function QuizContainer() {
               Jersey City Mayoral Candidate Quiz
             </h1>
             <p className="text-xl md:text-2xl lg:text-3xl text-gray-600 my-4 px-4">
-              Who should you support for mayor of Jersey City?
+              Find your perfect candidate for mayor of Jersey City in 2 minutes.
             </p>
             <div className='flex flex-col sm:flex-row gap-4 w-full max-w-md'>
               <button 
@@ -502,9 +507,16 @@ export default function QuizContainer() {
       {categoriesSelected && (
         <section className="pt-16 md:pt-0 pb-20 md:pb-24">
           {/* Sticky Category Progress */}
-          <div className={`fixed top-1/2 right-4 z-50 w-80 bg-gray-50/50 backdrop-blur-sm rounded-lg shadow-xl p-4 border border-gray-200/50 hidden lg:block transform -translate-y-1/2 transition-opacity duration-300 ${
+          <div className={`fixed top-1/2 right-4 z-50 w-80 bg-gray-50/50 backdrop-blur-sm rounded-lg shadow-xl p-4 border border-green-200/50 hidden lg:block transform -translate-y-1/2 transition-opacity duration-300 ${
             isViewingQuestions ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}>
+            {/* <button
+                onClick={handleResetQuiz}
+                disabled={isNavigating}
+                className="text-red-600 hover:text-red-700 text-sm font-medium transition-colors"
+              >
+                Reset Quiz
+              </button> */}
             <h3 className="text-xl font-bold text-black mb-3">Category Progress</h3>
             <div className="space-y-2">
               {Object.entries(topicProgress).map(([topic, progress]) => {
@@ -531,13 +543,6 @@ export default function QuizContainer() {
           {/* Mobile Sticky Progress Dots - Only show on mobile */}
           <div className="sticky top-0 z-50 md:hidden bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- py-3">
             <div className="flex justify-center items-center px-4">
-              {/* <button
-                onClick={handleResetQuiz}
-                disabled={isNavigating}
-                className="text-red-600 hover:text-red-700 text-sm font-medium transition-colors"
-              >
-                Reset Quiz
-              </button> */}
               <div className="flex space-x-2">
                 {questions.map((_, index) => (
                   <div

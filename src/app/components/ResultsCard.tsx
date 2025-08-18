@@ -81,8 +81,9 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           <div className="text-center mb-4 md:mb-6">
             <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{topCandidate.name}</h3>
             <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">{topCandidate.bio}</p>
+            {/* Top candidate points display */}
             <p className="text-xs md:text-sm text-gray-500">
-              {topCandidate.matchingAnswers} out of {topCandidate.totalPossibleMatches} possible matches
+              {topCandidate.matchingAnswers} points
             </p>
           </div>
 
@@ -132,8 +133,9 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                   <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                     {candidate.matchPercentage}%
                   </div>
+                  {/* All candidates points display */}
                   <p className="text-xs md:text-sm text-gray-600 mb-2 md:mb-3">
-                    {candidate.matchingAnswers}/{candidate.totalPossibleMatches} matches
+                    {candidate.matchingAnswers} points
                   </p>
                   {candidate.website && (
                     <a 
@@ -152,7 +154,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
         </div>
 
         {/* Sharing Section */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 hidden">
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 text-center">Share Your Results</h2>
           <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-4 md:mb-6">
             <button 

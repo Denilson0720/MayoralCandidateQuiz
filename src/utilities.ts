@@ -71,7 +71,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
     'Mussab Ali': {
         name: 'Mussab Ali',
         url:'https://res.cloudinary.com/duhazr5mo/image/upload/v1752979616/mussab_fjezhm.png',
-        website: 'https://mussabali.com',
+        website: 'https://www.ali2025.com',
         socialMedia: {
             twitter: 'https://twitter.com/mussabali',
             facebook: 'https://facebook.com/mussabali',
@@ -82,7 +82,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
     'James Solomon': {
         name: 'James Solomon',
         url: 'https://res.cloudinary.com/duhazr5mo/image/upload/v1753058211/solomon_gxhl1q.png',
-        website: 'https://jamessolomon.com',
+        website: 'https://solomonforjc.com',
         socialMedia: {
             twitter: 'https://twitter.com/jamessolomon',
             facebook: 'https://facebook.com/jamessolomon'
@@ -92,7 +92,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
     'Bill Odea':{
         name:'Bill Odea',
         url:'https://res.cloudinary.com/duhazr5mo/image/upload/v1753066661/Smiling_Man_in_Suit_and_Tie_ly0b5o.png',
-        website: 'https://billodea.com',
+        website: 'https://www.billodeajc.com',
         socialMedia: {
             twitter: 'https://twitter.com/billodea',
             facebook: 'https://facebook.com/billodea'
@@ -102,7 +102,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
     'Joyce Watterman':{
         name:'Joyce Watterman',
         url:'https://res.cloudinary.com/duhazr5mo/image/upload/v1753062314/joyce_muculq.png',
-        website: 'https://joycewatterman.com',
+        website: 'https://www.joyceforjc.com',
         socialMedia: {
             twitter: 'https://twitter.com/joycewatterman',
             facebook: 'https://facebook.com/joycewatterman'
@@ -112,7 +112,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
     'Jim McGreevy':{
         name:'Jim McGreevy',
         url:'https://res.cloudinary.com/duhazr5mo/image/upload/v1752979606/mcGreevy_j0xaql.png',
-        website: 'https://jimmcgreevy.com',
+        website: 'https://jim2025.com',
         socialMedia: {
             twitter: 'https://twitter.com/jimmcgreevy',
             facebook: 'https://facebook.com/jimmcgreevy'
@@ -134,23 +134,20 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
         totalPossibleMatches[candidate] = 0;
     });
 
-        // Calculate scores based on answers
+    // Calculate scores based on answers
     questions.forEach(question => {
       const userAnswer = answers[question.id];
       if (userAnswer !== undefined) {
         const selectedOption = question.options[userAnswer];
-        
         // Determine if this question belongs to a selected category
         const questionCategory = getQuestionCategory(question.id);
         const isWeightedQuestion = selectedCategories.includes(questionCategory);
         const weight = isWeightedQuestion ? 2 : 1; // Double points for selected categories
-        
         // Count matches for each candidate in the selected option
         selectedOption.candidates.forEach((candidate: string) => {
           candidateScores[candidate] += weight;
           candidateMatches[candidate] += weight;
         });
-        
         // Count total possible matches for each candidate across all options
         question.options.forEach((option) => {
           option.candidates.forEach((candidate: string) => {
@@ -160,12 +157,14 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
       }
     });
 
+    // Calculate the total points accrued by all candidates
+    const totalPointsAccrued = Object.values(candidateScores).reduce((sum, val) => sum + val, 0);
+
     // Calculate match percentages and create results
     const candidateMatchResults: CandidateMatch[] = Object.keys(candidateValues).map(candidate => {
-        const matchPercentage = totalPossibleMatches[candidate] > 0 
-            ? Math.round((candidateMatches[candidate] / totalPossibleMatches[candidate]) * 100)
+        const matchPercentage = totalPointsAccrued > 0 
+            ? Math.round((candidateScores[candidate] / totalPointsAccrued) * 100)
             : 0;
-            
         return {
             candidate,
             name: candidateValues[candidate].name,

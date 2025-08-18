@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { candidateValues } from '@/utilities';
-import { CandidateExplanation } from '@/questions';
+import { CandidateExplanation, Option as QuestionOption } from '@/questions';
+import ExplanationDropdown from './ExplanationDropdown';
 
 interface Option {
   text: string;
@@ -49,24 +50,6 @@ export default function QuestionCard({
   const [expandedOption, setExpandedOption] = useState<number | null>(null);
   const [showDetails, setShowDetails] = useState<number | null>(null);
 
-  // Helper function to parse explanation text and separate quotes from remarks
-  const parseExplanation = (explanation: string, remark?: string) => {
-    // Check if the text contains a quote (starts with a quote and has a closing quote)
-    // Handle both regular quotes and escaped quotes
-    const quoteMatch = explanation.match(/^[""]([^""]+)[""]\s*(.+)$/);
-    if (quoteMatch) {
-      return {
-        quote: quoteMatch[1],
-        remark: remark || quoteMatch[2].trim()
-      };
-    }
-    // If no quote pattern found, return the entire text as a remark
-    return {
-      quote: null,
-      remark: explanation
-    };
-  };
-
   const handleOptionClick = (index: number) => {
     if (selectedAnswer === index) {
       // If clicking the same option, toggle the dropdown
@@ -82,18 +65,23 @@ export default function QuestionCard({
     <div className="min-h-screen px-4 py-16">
       <div className="max-w-4xl mx-auto">
         {/* Main Content Area - Left aligned */}
+        {/* transparent background effect with blur */}
         <div className="flex flex-col items-start justify-center">
           {/* Subtopic Label */}
           <div className="uppercase tracking-wide text-xs p-2 rounded-md bg-black text-white mb-4">{question.subtopic}</div>
           
           {/* Question */}
           <div className="flex flex-row mb-6 w-full">
-            <span className="rounded-full p-4 bg-black text-white w-8 h-8 flex items-center justify-center">
+
+            <span className="rounded-md p-4 bg-black text-white w-8 h-8 flex items-center justify-center">
               {questionNumber}
             </span>
-            <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 px-4 py-2 flex items-center">
+          {/* <div className="uppercase tracking-wide text-xs p-2 rounded-md bg-black text-white mb-4">{question.subtopic}</div> */}
+            
+            <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 px-4 flex items-center">
               {question.question}
             </h2>
+
           </div>
 
           {/* Answer Options */}
@@ -105,7 +93,7 @@ export default function QuestionCard({
                   className={`flex items-center w-full text-left py-4 md:py-6 px-3 md:px-4 rounded-t-lg border-2 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
                     selectedAnswer === index
                       ? 'bg-green-200'
-                      : 'hover:border-gray-300 hover:bg-gray-50 bg-white'
+                      : 'hover:border-gray-300 hover:bg-gray-50 bg-white-500 bg-opacity-90 backdrop-blur-sm p-4 shadow-xl'
                   } ${selectedAnswer === index && expandedOption === index ? 'rounded-b-none' : 'rounded-b-lg'}`}
                 >
                   <div className='font-bold text-lg md:text-xl p-1'>{letters[index]}</div>
@@ -161,75 +149,13 @@ export default function QuestionCard({
                     
                     {/* More Details Button */}
                     {option.explanations && option.explanations.length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-gray-200">
-                        <button
-                          onClick={() => setShowDetails(showDetails === index ? null : index)}
-                          className="text-blue-600 hover:text-blue-800 text-xs md:text-sm font-medium transition-colors"
-                        >
-                          {showDetails === index ? 'Hide Details' : 'More Details'}
-                        </button>
-                        
-                        {/* Details Dropdown */}
-                        {showDetails === index && (
-                          <div className="mt-3 space-y-3">
-                            {option.explanations.map((explanation, expIndex) => (
-                              <div key={expIndex} className="bg-gray-50 p-3 rounded-lg">
-                                <div className="flex items-start gap-3">
-                                  {candidateValues[explanation.candidate] ? (
-                                    <img 
-                                      className='w-8 h-8 rounded-full object-cover flex-shrink-0' 
-                                      src={candidateValues[explanation.candidate].url} 
-                                      alt={candidateValues[explanation.candidate].name}
-                                    />
-                                  ) : (
-                                    <div className='w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0'>
-                                      <span className="text-white text-xs font-bold">M</span>
-                                    </div>
-                                  )}
-                                  <div className="flex-1">
-                                    <h5 className="text-xs md:text-sm font-semibold text-gray-900 mb-1">
-                                      {candidateValues[explanation.candidate] ? candidateValues[explanation.candidate].name : explanation.candidate}
-                                    </h5>
-                                    {(() => {
-                                      const parsed = parseExplanation(explanation.explanation, explanation.remark);
-                                      console.log('Explanation debug:', {
-                                        explanation: explanation.explanation,
-                                        remark: explanation.remark,
-                                        hasRemark: !!explanation.remark,
-                                        parsed
-                                      });
-                                      return (
-                                        <div className="space-y-2">
-                                          {parsed.quote && (
-                                            <blockquote className="text-xs md:text-sm text-gray-600 italic border-l-2 border-gray-300 pl-3">
-                                              "{parsed.quote}"{explanation.remark ? ` -- ${explanation.remark}` : ''}
-                                            </blockquote>
-                                          )}
-                                          <p className="text-xs md:text-sm text-gray-700 leading-relaxed">
-                                            {parsed.remark}
-                                          </p>
-                                          {explanation.sourceLink && explanation.sourceTitle && (
-                                            <div className="mt-2">
-                                              <a 
-                                                href={explanation.sourceLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-xs md:text-sm text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
-                                              >
-                                                {explanation.sourceTitle}
-                                              </a>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <ExplanationDropdown
+                        option={option as QuestionOption}
+                        index={index}
+                        showDetails={showDetails}
+                        setShowDetails={setShowDetails}
+                        candidateValues={candidateValues}
+                      />
                     )}
                   </div>
                 </div>
@@ -238,9 +164,12 @@ export default function QuestionCard({
           </div>
 
           {/* Action Buttons */}
+          {/* hide for pc */}
           <div className="w-full max-w-3xl flex flex-col sm:flex-row justify-start gap-3 md:gap-4 px-4">
             {isLast && onSubmit && (
               <button
+                onMouseEnter={() => console.log('onMouseEnter')}
+                onMouseLeave={() => console.log('onMouseLeave')}
                 onClick={onSubmit}
                 className="px-6 md:px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors border-2 border-green-700 hover:border-green-800 text-sm md:text-base w-full sm:w-auto"
               >
