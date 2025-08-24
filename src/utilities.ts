@@ -192,9 +192,41 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
     };
 }
 
-// Save results to localStorage
-export function saveQuizResults(results: QuizResult): void {
-    localStorage.setItem('jerseyCityQuizResults', JSON.stringify(results));
+// Save results to database and localStorage
+export async function saveQuizResults(results: QuizResult): Promise<boolean> {
+    try {
+        // Save to localStorage for immediate access
+        localStorage.setItem('jerseyCityQuizResults', JSON.stringify(results));
+        
+        // Save to database
+        const response = await fetch('/api/quiz-results', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                answers: results.answers,
+                selectedCategories: results.selectedCategories,
+                totalQuestions: results.totalQuestions,
+                answeredQuestions: results.answeredQuestions,
+                completionPercentage: results.completionPercentage,
+                userAgent: navigator.userAgent,
+                ipAddress: null // Will be captured server-side
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save to database');
+        }
+
+        const data = await response.json();
+        console.log('Quiz results saved to database:', data);
+        return true;
+    } catch (error) {
+        console.error('Error saving quiz results:', error);
+        // Still save to localStorage even if database save fails
+        return false;
+    }
 }
 
 // Load results from localStorage

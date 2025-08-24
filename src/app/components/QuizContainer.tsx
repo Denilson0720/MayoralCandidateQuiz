@@ -26,6 +26,7 @@ export default function QuizContainer() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [currentCandidateIndex, setCurrentCandidateIndex] = useState(0);
   const [isViewingQuestions, setIsViewingQuestions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Helper function to get question index by ID
@@ -90,18 +91,36 @@ export default function QuizContainer() {
     }
   }, [currentQuestionId, showSubmit, quizCompleted, getQuestionIndexById]);
 
-  const handleSubmitQuiz = () => {
-    // Calculate initial results without category weighting
-    const results = calculateQuizResults(answers, questions, []);
-    setQuizResults(results);
-    setQuizCompleted(true);
-    setCategoriesSelected(false); // Reset to show category selection
-    setShowSubmit(false);
+  const handleSubmitQuiz = async () => {
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      console.log('Quiz submission already in progress, ignoring duplicate click');
+      return;
+    }
     
-    // Scroll to top for category selection
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 500);
+    setIsSubmitting(true);
+    
+    try {
+      // Calculate initial results without category weighting
+      const results = calculateQuizResults(answers, questions, []);
+      setQuizResults(results);
+      setQuizCompleted(true);
+      setCategoriesSelected(false); // Reset to show category selection
+      setShowSubmit(false);
+      
+      // Only save to localStorage for now - database save happens after category selection
+      localStorage.setItem('jerseyCityQuizResults', JSON.stringify(results));
+      console.log('Initial quiz results saved to localStorage (waiting for category selection)');
+      
+      // Scroll to top for category selection
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 500);
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -116,7 +135,7 @@ export default function QuizContainer() {
           if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
             const questionId = parseInt(entry.target.getAttribute('data-question-id') || '0');
             if (typeof questionId === 'number' && questionId !== currentQuestionId) {
-              console.log('Observer detected question change:', { from: currentQuestionId, to: questionId });
+              // console.log('Observer detected question change:', { from: currentQuestionId, to: questionId });
               setCurrentQuestionId(questionId);
             }
           }
@@ -240,8 +259,10 @@ export default function QuizContainer() {
 
   const handleNextQuestion = () => {
     const nextId = getNextQuestionId(currentQuestionId);
+    // log current state of questions 
+    console.log('quiz results', quizResults);
+    // console.log('current answers', answers);
     if (nextId && !isNavigating) {
-      console.log('Next button clicked:', { from: currentQuestionId, to: nextId });
       setIsNavigating(true);
       setCurrentQuestionId(nextId);
       
@@ -332,7 +353,7 @@ export default function QuizContainer() {
     }, 100);
   };
 
-  const handleCategoriesSelected = (categories: string[]) => {
+  const handleCategoriesSelected = async (categories: string[]) => {
     setSelectedCategories(categories);
     setCategoriesSelected(true);
     
@@ -341,8 +362,17 @@ export default function QuizContainer() {
       const weightedResults = calculateQuizResults(answers, questions, categories);
       setQuizResults(weightedResults);
       
-      // Save final results to localStorage
-      saveQuizResults(weightedResults);
+      // Save final results to database
+      try {
+        const saveSuccess = await saveQuizResults(weightedResults);
+        if (saveSuccess) {
+          console.log('Final quiz results with categories saved successfully');
+        } else {
+          console.warn('Final quiz results saved to localStorage only');
+        }
+      } catch (error) {
+        console.error('Error saving final quiz results:', error);
+      }
     }
     
     // Scroll to results
@@ -630,10 +660,10 @@ export default function QuizContainer() {
                 {showSubmit ? (
                   <button
                     onClick={handleSubmitQuiz}
-                    disabled={isNavigating}
+                    disabled={isNavigating || isSubmitting}
                     className="px-4 md:px-8 py-2 rounded-lg font-semibold transition-colors bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
                   >
-                    {isNavigating ? '...' : 'Submit Quiz'}
+                    {isNavigating || isSubmitting ? 'Submitting...' : 'Submit Quiz'}
                   </button>
                 ) : (
                   <button
@@ -675,10 +705,10 @@ export default function QuizContainer() {
             {showSubmit ? (
               <button
                 onClick={handleSubmitQuiz}
-                disabled={isNavigating}
+                disabled={isNavigating || isSubmitting}
                 className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit
+                {isNavigating || isSubmitting ? 'Submitting...' : 'Submit'}
               </button>
             ) : (
               <button

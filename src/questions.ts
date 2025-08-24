@@ -1023,17 +1023,15 @@ export const questions: Question[] = [
         ],
       },
       {
-        text: "A fresh outsider with new ideas",
+        text: "A seasoned executive with state and national connections",
         candidates: ["Jim McGreevy"],
         explanations: [
           {
             candidate: "Jim McGreevy",
-            quote:
-              "McGreevy frames himself as a new face in the race, ready to challenge the status quo.",
-            explanation: "",
+            explanation: "McGreevy highlights his background as a former governor, presenting himself as someone who can leverage state and federal relationships to benefit Jersey City.",
             source: "Jim McGreevy's platform",
-            sourceLink: "https://jimmcgreevy.com",
-            sourceTitle: "jimmcgreevy.com",
+            sourceLink: "https://jim2025.com/",
+            sourceTitle: "jim2025.com",
           },
         ],
       },
@@ -1064,6 +1062,19 @@ export const questions: Question[] = [
             source: "Joyce Watterman's platform",
             sourceLink: "https://www.joyceforjc.com/",
             sourceTitle: "joyceforjc.com",
+          },
+        ],
+      },
+      {
+        text: "An independent reformer focused on accountability",
+        candidates: ["James Solomon"],
+        explanations: [
+          {
+            candidate: "James Solomon",
+            explanation: "Solomon underscores his record as a councilmember who has pushed for transparency, anti-corruption reforms, and independence from developers and political insiders.",
+            source: "James Solomon's platform",
+            sourceLink: "https://solomonforjc.com/",
+            sourceTitle: "solomonforjc.com",
           },
         ],
       },
