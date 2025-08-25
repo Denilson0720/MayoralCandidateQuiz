@@ -21,7 +21,7 @@ interface QuestionCardProps {
   question: Question;
   questionNumber: number;
   totalQuestions: number;
-  selectedAnswer?: number;
+  selectedAnswers?: number[];
   onAnswerSelect: (answerIndex: number) => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -37,7 +37,7 @@ export default function QuestionCard({
   question,
   questionNumber,
   totalQuestions,
-  selectedAnswer,
+  selectedAnswers = [],
   onAnswerSelect,
   onNext,
   onPrevious,
@@ -51,14 +51,15 @@ export default function QuestionCard({
   const [showDetails, setShowDetails] = useState<number | null>(null);
 
   const handleOptionClick = (index: number) => {
-    if (selectedAnswer === index) {
-      // If clicking the same option, toggle the dropdown
-      setExpandedOption(expandedOption === index ? null : index);
-    } else {
-      // If clicking a different option, select it and expand its dropdown
-      onAnswerSelect(index);
-      setExpandedOption(index);
-    }
+    // Only select/deselect the option
+    onAnswerSelect(index);
+  };
+
+
+
+  const handleToggleDropdown = (index: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering the main click handler
+    setExpandedOption(expandedOption === index ? null : index);
   };
 
   return (
@@ -84,22 +85,34 @@ export default function QuestionCard({
 
           </div>
 
+          {/* Multi-select instruction */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              💡 You can select multiple options that you agree with. Click on an option to select/deselect it.
+            </p>
+          </div>
+
           {/* Answer Options */}
           <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 w-full max-w-3xl flex flex-col justify-start items-start">
             {question.options.map((option, index) => (
               <div key={index} className="w-full">
                 <div
                   onClick={() => handleOptionClick(index)}
-                  className={`flex items-center w-full text-left py-4 md:py-6 px-3 md:px-4 rounded-t-lg border-2 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
-                    selectedAnswer === index
+                  className={`flex flex-col items-center w-full text-left py-4 md:py-6 px-3 md:px-4 rounded-t-lg border-2 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
+                    selectedAnswers.includes(index)
                       ? 'bg-green-200'
-                      : 'hover:border-gray-300 hover:bg-gray-50 bg-white-500 bg-opacity-90 backdrop-blur-sm p-4 shadow-xl'
-                  } ${selectedAnswer === index && expandedOption === index ? 'rounded-b-none' : 'rounded-b-lg'}`}
+                      : 'bg-white p-4 shadow-xl'
+                  } ${selectedAnswers.includes(index) && expandedOption === index ? 'rounded-b-none' : 'rounded-b-lg'}`}
                 >
-                  <div className='font-bold text-lg md:text-xl p-1'>{letters[index]}</div>
-                  <div className="pl-2 md:pl-4 font-medium text-sm md:text-base">{option.text}</div>
+                  <div className='flex items-center w-full'>
+                    <div className='font-bold text-lg md:text-xl p-1'>{letters[index]}</div>
+                    <div className="pl-2 md:pl-4 font-medium text-sm md:text-base flex-1">{option.text}</div>
+                  </div>
+                  <span className='text-sm font-medium md:text-base hover:underline hover:font-bold '  onClick={(e) => handleToggleDropdown(index, e)}>{expandedOption === index ? 'hide details -' : 'view details +'}</span>
+
                 </div>
                 
+
                 {/* Dropdown for candidates - improved animation */}
                 <div 
                   className={`
@@ -163,20 +176,7 @@ export default function QuestionCard({
             ))}
           </div>
 
-          {/* Action Buttons */}
-          {/* hide for pc */}
-          <div className="w-full max-w-3xl flex flex-col sm:flex-row justify-start gap-3 md:gap-4 px-4">
-            {isLast && onSubmit && (
-              <button
-                onMouseEnter={() => console.log('onMouseEnter')}
-                onMouseLeave={() => console.log('onMouseLeave')}
-                onClick={onSubmit}
-                className="px-6 md:px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors border-2 border-green-700 hover:border-green-800 text-sm md:text-base w-full sm:w-auto"
-              >
-                Submit Quiz
-              </button>
-            )}
-          </div>
+
         </div>
       </div>
     </div>

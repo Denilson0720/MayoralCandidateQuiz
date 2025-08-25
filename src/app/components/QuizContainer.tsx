@@ -11,8 +11,8 @@ export default function QuizContainer() {
 
   // track current question by ID instead of array index
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(questions[0].id);
-  // keep track of question answers
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  // keep track of question answers (now supports multiple selections)
+  const [answers, setAnswers] = useState<Record<number, number[]>>({});
   // flag for showing progress bar,...etc
   const [quizStarted,setQuizStarted] = useState<boolean>(false);
   // track category selection
@@ -75,10 +75,13 @@ export default function QuizContainer() {
   }, []);
 
   const handleAnswerSelect = (questionId: number, answerIndex: number) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answerIndex
-    }));
+    setAnswers(prev => {
+      const currentSelections = prev[questionId] || [];
+      const newSelections = currentSelections.includes(answerIndex)
+        ? currentSelections.filter(i => i !== answerIndex) // deselect
+        : [...currentSelections, answerIndex]; // select
+      return { ...prev, [questionId]: newSelections };
+    });
   };
 
   // Check if user has reached the end of the quiz
@@ -109,7 +112,11 @@ export default function QuizContainer() {
       setShowSubmit(false);
       
       // Only save to localStorage for now - database save happens after category selection
-      localStorage.setItem('jerseyCityQuizResults', JSON.stringify(results));
+      const resultsWithTimestamp = {
+        ...results,
+        submittedAt: new Date().toISOString()
+      };
+      localStorage.setItem('jerseyCityQuizResults', JSON.stringify(resultsWithTimestamp));
       console.log('Initial quiz results saved to localStorage (waiting for category selection)');
       
       // Scroll to top for category selection
@@ -135,7 +142,6 @@ export default function QuizContainer() {
           if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
             const questionId = parseInt(entry.target.getAttribute('data-question-id') || '0');
             if (typeof questionId === 'number' && questionId !== currentQuestionId) {
-              // console.log('Observer detected question change:', { from: currentQuestionId, to: questionId });
               setCurrentQuestionId(questionId);
             }
           }
@@ -187,7 +193,6 @@ export default function QuizContainer() {
       });
 
       if (mostVisibleQuestionId !== currentQuestionId && maxVisibility > 0.3) {
-        console.log('Manual check detected question change:', { from: currentQuestionId, to: mostVisibleQuestionId, visibility: maxVisibility });
         setCurrentQuestionId(mostVisibleQuestionId);
       }
     };
@@ -425,7 +430,7 @@ export default function QuizContainer() {
   // Show results if quiz is completed and categories are selected
   if (quizCompleted && quizResults && categoriesSelected) {
     return (
-      <div className="border-2 border-red-500">
+      <div>
         <ResultsCard 
           results={quizResults} 
           onRetakeQuiz={handleResetQuiz}
@@ -458,16 +463,16 @@ export default function QuizContainer() {
             <p className="text-xl md:text-2xl lg:text-3xl text-gray-600 my-4 px-4">
               Find your perfect candidate for mayor of Jersey City in 2 minutes.
             </p>
-            <div className='flex flex-col sm:flex-row gap-4 w-full max-w-md'>
+            <div className='flex flex-col justify-center items-center sm:flex-row gap-4 w-full max-w-md'>
               <button 
                 onClick={handleStartQuiz}
                 disabled={isNavigating}
-                className="bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                className="bg-white hover:bg-green-200 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
               >
                 {isNavigating ? 'Starting...' : 'Start Quiz'}
               </button>
               <button 
-                className="bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg transition-colors w-full sm:w-auto"
+                className="hidden bg-gray-100 hover:bg-gray-300 hover:cursor-pointer border-2 border-black text-black font-semibold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg transition-colors w-full sm:w-auto"
               >
                 View Candidates
               </button>
@@ -537,16 +542,9 @@ export default function QuizContainer() {
       {categoriesSelected && (
         <section className="pt-16 md:pt-0 pb-20 md:pb-24">
           {/* Sticky Category Progress */}
-          <div className={`fixed top-1/2 right-4 z-50 w-80 bg-gray-50/50 backdrop-blur-sm rounded-lg shadow-xl p-4 border border-green-200/50 hidden lg:block transform -translate-y-1/2 transition-opacity duration-300 ${
+          {/* <div className={`fixed top-1/2 right-4 z-50 w-80 bg-gray-50/50 backdrop-blur-sm rounded-lg shadow-xl p-4 border border-green-200/50 hidden lg:block transform -translate-y-1/2 transition-opacity duration-300 ${
             isViewingQuestions ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}>
-            {/* <button
-                onClick={handleResetQuiz}
-                disabled={isNavigating}
-                className="text-red-600 hover:text-red-700 text-sm font-medium transition-colors"
-              >
-                Reset Quiz
-              </button> */}
             <h3 className="text-xl font-bold text-black mb-3">Category Progress</h3>
             <div className="space-y-2">
               {Object.entries(topicProgress).map(([topic, progress]) => {
@@ -568,7 +566,7 @@ export default function QuizContainer() {
                 );
               })}
             </div>
-          </div>
+          </div> */}
 
           {/* Mobile Sticky Progress Dots - Only show on mobile */}
           <div className="sticky top-0 z-50 md:hidden bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- py-3">
@@ -606,7 +604,7 @@ export default function QuizContainer() {
                   question={question}
                   questionNumber={index + 1}
                   totalQuestions={questions.length}
-                  selectedAnswer={answers[question.id]}
+                  selectedAnswers={answers[question.id] || []}
                   onAnswerSelect={(answerIndex) => handleAnswerSelect(question.id, answerIndex)}
                   onNext={handleNextQuestion}
                   onPrevious={handlePreviousQuestion}
@@ -614,7 +612,7 @@ export default function QuizContainer() {
                   onSubmit={showSubmit ? handleSubmitQuiz : undefined}
                   isFirst={index === 0}
                   isLast={index === questions.length - 1}
-                  canProceed={answers[question.id] !== undefined}
+                  canProceed={(answers[question.id] && answers[question.id].length > 0) || false}
                 />
               </div>
             ))}

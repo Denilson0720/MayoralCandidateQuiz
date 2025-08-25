@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Calculate candidate matches for storage
-    const candidateMatches = await calculateCandidateMatches(answers);
+    const candidateMatches = await calculateCandidateMatches(answers, selectedCategories);
     
     const quizResultValues = [
       totalQuestions,
@@ -46,20 +46,24 @@ export async function POST(request: NextRequest) {
     const quizResultId = quizResult.rows[0].id;
 
     // Insert individual answers
-    const answerPromises = Object.entries(answers).map(([questionId, answerIndex]) => {
-      const answerQuery = `
-        INSERT INTO quiz_answers (
-          quiz_result_id,
-          question_id,
-          option_id
-        ) VALUES ($1, $2, $3)
-      `;
+    const answerPromises = Object.entries(answers).flatMap(([questionId, answerIndices]) => {
+      const answerIndicesArray = Array.isArray(answerIndices) ? answerIndices : [answerIndices];
       
-      // Get the option ID based on question ID and answer index
-      return getOptionId(parseInt(questionId), answerIndex as number).then(optionId => {
-        if (optionId) {
-          return pool.query(answerQuery, [quizResultId, parseInt(questionId), optionId]);
-        }
+      return answerIndicesArray.map(answerIndex => {
+        const answerQuery = `
+          INSERT INTO quiz_answers (
+            quiz_result_id,
+            question_id,
+            option_id
+          ) VALUES ($1, $2, $3)
+        `;
+        
+        // Get the option ID based on question ID and answer index
+        return getOptionId(parseInt(questionId), answerIndex as number).then(optionId => {
+          if (optionId) {
+            return pool.query(answerQuery, [quizResultId, parseInt(questionId), optionId]);
+          }
+        });
       });
     });
 
@@ -98,10 +102,12 @@ async function getOptionId(questionId: number, answerIndex: number): Promise<num
   }
 }
 
-// Helper function to calculate candidate matches
-async function calculateCandidateMatches(answers: Record<number, number>) {
+// Helper function to calculate candidate matches (matching UI logic)
+async function calculateCandidateMatches(answers: Record<number, number[]>, selectedCategories: string[] = []) {
   try {
     const candidateScores: Record<string, number> = {};
+    const candidateMatches: Record<string, number> = {};
+    const totalPossibleMatches: Record<string, number> = {};
     
     // Initialize scores for all candidates
     const candidatesQuery = 'SELECT id, name FROM candidates';
@@ -109,38 +115,76 @@ async function calculateCandidateMatches(answers: Record<number, number>) {
     
     candidatesResult.rows.forEach(candidate => {
       candidateScores[candidate.name] = 0;
+      candidateMatches[candidate.name] = 0;
+      totalPossibleMatches[candidate.name] = 0;
     });
 
-    // Calculate scores based on answers
-    for (const [questionId, answerIndex] of Object.entries(answers)) {
-      const optionId = await getOptionId(parseInt(questionId), answerIndex);
-      if (optionId) {
-        const candidateQuery = `
-          SELECT c.name 
-          FROM candidates c
-          JOIN quiz_option_candidates qoc ON c.id = qoc.candidate_id
-          WHERE qoc.option_id = $1
-        `;
+    // Get all questions and their categories
+    const questionsQuery = `
+      SELECT q.id, q.category, q.question_text, opt.id as option_id, opt.option_label, opt.option_text, c.name as candidate_name
+      FROM quiz_questions q
+      JOIN quiz_options opt ON q.id = opt.question_id
+      LEFT JOIN quiz_option_candidates qoc ON opt.id = qoc.option_id
+      LEFT JOIN candidates c ON qoc.candidate_id = c.id
+      ORDER BY q.id, opt.option_label
+    `;
+    const questionsResult = await pool.query(questionsQuery);
+    
+    // Group by question
+    const questionsMap: { [key: number]: any[] } = {};
+    questionsResult.rows.forEach(row => {
+      if (!questionsMap[row.id]) {
+        questionsMap[row.id] = [];
+      }
+      questionsMap[row.id].push(row);
+    });
+
+    // Calculate scores based on answers (matching UI logic)
+    for (const [questionId, answerIndices] of Object.entries(answers)) {
+      const answerIndicesArray = Array.isArray(answerIndices) ? answerIndices : [answerIndices];
+      // Convert UI question ID (0-based) to database question ID (1-based)
+      const databaseQuestionId = parseInt(questionId) + 1;
+      const questionData = questionsMap[databaseQuestionId];
+      
+      if (questionData && answerIndicesArray.length > 0) {
+        // Determine if this question belongs to a selected category
+        const questionCategory = questionData[0].category;
+        const isWeightedQuestion = selectedCategories.includes(questionCategory);
+        const weight = isWeightedQuestion ? 2 : 1; // Double points for selected categories
         
-        const candidateResult = await pool.query(candidateQuery, [optionId]);
-        candidateResult.rows.forEach(row => {
-          candidateScores[row.name] += 1;
+        // Count matches for each selected option
+        answerIndicesArray.forEach(answerIndex => {
+          const selectedOption = questionData[answerIndex];
+          if (selectedOption && selectedOption.candidate_name) {
+            candidateScores[selectedOption.candidate_name] += weight;
+            candidateMatches[selectedOption.candidate_name] += weight;
+          }
+        });
+        
+        // Count total possible matches for each candidate across all options
+        questionData.forEach(option => {
+          if (option.candidate_name) {
+            totalPossibleMatches[option.candidate_name] += weight;
+          }
         });
       }
     }
 
-    // Calculate percentages
-    const totalSelections = Object.values(candidateScores).reduce((sum, score) => sum + score, 0);
-    const candidateMatches = Object.entries(candidateScores).map(([name, score]) => ({
-      candidate: name,
-      matchPercentage: totalSelections > 0 ? Math.round((score / totalSelections) * 100) : 0,
-      matchingAnswers: score
+    // Calculate the total points accrued by all candidates (matching UI logic)
+    const totalPointsAccrued = Object.values(candidateScores).reduce((sum, val) => sum + val, 0);
+
+    // Calculate match percentages and create results (matching UI logic)
+    const candidateMatchesResult = Object.keys(candidateScores).map(candidate => ({
+      candidate,
+      matchPercentage: totalPointsAccrued > 0 ? Math.round((candidateScores[candidate] / totalPointsAccrued) * 100) : 0,
+      matchingAnswers: candidateMatches[candidate],
+      totalPossibleMatches: totalPossibleMatches[candidate]
     }));
 
     // Sort by match percentage (highest first)
-    candidateMatches.sort((a, b) => b.matchPercentage - a.matchPercentage);
+    candidateMatchesResult.sort((a, b) => b.matchPercentage - a.matchPercentage);
     
-    return candidateMatches;
+    return candidateMatchesResult;
   } catch (error) {
     console.error('Error calculating candidate matches:', error);
     return [];

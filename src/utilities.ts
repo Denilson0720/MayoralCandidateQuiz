@@ -47,7 +47,7 @@ export interface QuizResult {
     answeredQuestions: number;
     completionPercentage: number;
     timestamp: string;
-    answers: Record<number, number>;
+    answers: Record<number, number[]>;
     selectedCategories: string[];
 }
 
@@ -122,7 +122,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
 };
 
 // Calculate quiz results based on user answers
-export function calculateQuizResults(answers: Record<number, number>, questions: Question[], selectedCategories: string[] = []): QuizResult {
+export function calculateQuizResults(answers: Record<number, number[]>, questions: Question[], selectedCategories: string[] = []): QuizResult {
     const candidateScores: Record<string, number> = {};
     const candidateMatches: Record<string, number> = {};
     const totalPossibleMatches: Record<string, number> = {};
@@ -136,18 +136,24 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
 
     // Calculate scores based on answers
     questions.forEach(question => {
-      const userAnswer = answers[question.id];
-      if (userAnswer !== undefined) {
-        const selectedOption = question.options[userAnswer];
+      const userAnswers = answers[question.id];
+      if (userAnswers && userAnswers.length > 0) {
         // Determine if this question belongs to a selected category
         const questionCategory = getQuestionCategory(question.id);
         const isWeightedQuestion = selectedCategories.includes(questionCategory);
         const weight = isWeightedQuestion ? 2 : 1; // Double points for selected categories
-        // Count matches for each candidate in the selected option
-        selectedOption.candidates.forEach((candidate: string) => {
-          candidateScores[candidate] += weight;
-          candidateMatches[candidate] += weight;
+        
+        // Count matches for each selected option
+        userAnswers.forEach(answerIndex => {
+          const selectedOption = question.options[answerIndex];
+          if (selectedOption) {
+            selectedOption.candidates.forEach((candidate: string) => {
+              candidateScores[candidate] += weight;
+              candidateMatches[candidate] += weight;
+            });
+          }
         });
+        
         // Count total possible matches for each candidate across all options
         question.options.forEach((option) => {
           option.candidates.forEach((candidate: string) => {
@@ -184,8 +190,8 @@ export function calculateQuizResults(answers: Record<number, number>, questions:
     return {
         candidateMatches: candidateMatchResults,
         totalQuestions: questions.length,
-        answeredQuestions: Object.keys(answers).length,
-        completionPercentage: Math.round((Object.keys(answers).length / questions.length) * 100),
+        answeredQuestions: Object.keys(answers).filter(qid => answers[parseInt(qid)] && answers[parseInt(qid)].length > 0).length,
+        completionPercentage: Math.round((Object.keys(answers).filter(qid => answers[parseInt(qid)] && answers[parseInt(qid)].length > 0).length / questions.length) * 100),
         timestamp: new Date().toISOString(),
         answers,
         selectedCategories

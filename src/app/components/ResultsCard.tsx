@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { QuizResult, shareResults } from '@/utilities';
 import { questions } from '@/questions';
 import { categories } from './CategorySelection';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ResultsCardProps {
   results: QuizResult;
@@ -13,7 +15,9 @@ interface ResultsCardProps {
 export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps) {
   const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const letters = ["A", "B", "C", "D"];
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleShare = (platform: 'twitter' | 'facebook' | 'linkedin') => {
     shareResults(results, platform);
@@ -29,11 +33,110 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!resultsRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    
+    try {
+      // Create a simplified PDF content manually
+      const pdfContent = document.createElement('div');
+      pdfContent.style.position = 'absolute';
+      pdfContent.style.left = '-9999px';
+      pdfContent.style.top = '0';
+      pdfContent.style.width = '800px';
+      pdfContent.style.backgroundColor = 'white';
+      pdfContent.style.padding = '40px';
+      pdfContent.style.fontFamily = 'Arial, sans-serif';
+      pdfContent.style.color = 'black';
+      document.body.appendChild(pdfContent);
+
+      // Create PDF content manually to avoid CSS issues
+      const topCandidate = results.candidateMatches[0];
+      
+      pdfContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 40px;">
+          <h1 style="font-size: 32px; font-weight: bold; margin-bottom: 20px; color: #000;">Your Jersey City Mayoral Match Results</h1>
+          <p style="font-size: 18px; color: #666; margin-bottom: 20px;">You answered ${results.answeredQuestions} out of ${results.totalQuestions} questions</p>
+        </div>
+
+        <div style="border: 2px solid #22c55e; border-radius: 8px; padding: 30px; margin-bottom: 30px; background-color: #f0fdf4;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #000;">Your Top Match</h2>
+            <div style="font-size: 48px; font-weight: bold; color: #22c55e; margin-bottom: 20px;">${topCandidate.matchPercentage}%</div>
+          </div>
+          
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h3 style="font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #000;">${topCandidate.name}</h3>
+            <p style="font-size: 16px; color: #666; margin-bottom: 10px;">${topCandidate.bio}</p>
+            <p style="font-size: 14px; color: #666;">${topCandidate.matchingAnswers} points</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center; color: #000;">All Candidates</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            ${results.candidateMatches.map((candidate, index) => `
+              <div style="padding: 20px; border-radius: 8px; border: 2px solid ${index === 0 ? '#22c55e' : index === 1 ? '#3b82f6' : '#d1d5db'}; background-color: ${index === 0 ? '#f0fdf4' : index === 1 ? '#eff6ff' : '#f9fafb'};">
+                <div style="text-align: center;">
+                  <h3 style="font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #000;">${candidate.name}</h3>
+                  <div style="font-size: 24px; font-weight: bold; color: #000; margin-bottom: 10px;">${candidate.matchPercentage}%</div>
+                  <p style="font-size: 14px; color: #666; margin-bottom: 10px;">${candidate.matchingAnswers} points</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      // Generate PDF
+      const canvas = await html2canvas(pdfContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Download the PDF
+      const fileName = `jersey-city-mayoral-quiz-results-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+      // Clean up
+      document.body.removeChild(pdfContent);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const topCandidate = results.candidateMatches[0];
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-cyan-200 via-slate-50 to-red-200 py-4 md:py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div ref={resultsRef} className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
@@ -104,6 +207,58 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
               className="bg-blue-400 hover:bg-blue-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base"
             >
               Share on Twitter
+            </button>
+            <button 
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPDF}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base flex items-center gap-2"
+            >
+              {isGeneratingPDF ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Download Results Section */}
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+          <div className="text-center">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Save Your Results</h2>
+            <p className="text-gray-600 mb-6">Download a PDF copy of your quiz results to keep for reference</p>
+            <button 
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPDF}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg flex items-center gap-3 mx-auto"
+            >
+              {isGeneratingPDF ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download Results PDF
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -181,6 +336,28 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
             >
               {copied ? 'Copied!' : 'Copy Link'}
             </button>
+            <button 
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPDF}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base flex items-center gap-2"
+            >
+              {isGeneratingPDF ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -217,7 +394,9 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                       </h3>
                       <div className="flex items-center space-x-2">
                         {isAnswered ? (
-                          <span className="text-green-600 text-xs md:text-sm font-medium">✓ Answered</span>
+                          <span className="text-green-600 text-xs md:text-sm font-medium">
+                            ✓ Answered {Array.isArray(userAnswer) ? `(${userAnswer.length} selected)` : ''}
+                          </span>
                         ) : (
                           <span className="text-gray-500 text-xs md:text-sm font-medium">○ Skipped</span>
                         )}
@@ -228,22 +407,51 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                     
                     {isAnswered ? (
                       <div className="bg-white p-3 md:p-4 rounded border">
-                        <p className="text-xs md:text-sm text-gray-600 mb-2">Your Answer:</p>
-                        <p className="font-medium text-sm md:text-base text-gray-900 mb-2 md:mb-3">
-                          {letters[userAnswer]}. {question.options[userAnswer].text}
-                        </p>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-2">Candidates who agree:</p>
-                          <div className="flex flex-wrap gap-1 md:gap-2">
-                            {question.options[userAnswer].candidates.map((candidate, candidateIndex) => (
-                              <span 
-                                key={candidateIndex}
-                                className="inline-block bg-blue-100 text-blue-800 text-xs md:text-sm px-2 md:px-3 py-1 rounded-full"
-                              >
-                                {candidate}
-                              </span>
-                            ))}
-                          </div>
+                        <p className="text-xs md:text-sm text-gray-600 mb-2">Your Answers:</p>
+                        <div className="space-y-2 md:space-y-3">
+                          {Array.isArray(userAnswer) ? (
+                            // Multiple selections
+                            userAnswer.map((answerIndex, answerNum) => (
+                              <div key={answerIndex} className="border-l-4 border-green-500 pl-3">
+                                <p className="font-medium text-sm md:text-base text-gray-900">
+                                  {letters[answerIndex]}. {question.options[answerIndex].text}
+                                </p>
+                                <div className="mt-1">
+                                  <p className="text-xs text-gray-500 mb-1">Candidates who agree:</p>
+                                  <div className="flex flex-wrap gap-1 md:gap-2">
+                                    {question.options[answerIndex].candidates.map((candidate, candidateIndex) => (
+                                      <span 
+                                        key={candidateIndex}
+                                        className="inline-block bg-blue-100 text-blue-800 text-xs md:text-sm px-2 md:px-3 py-1 rounded-full"
+                                      >
+                                        {candidate}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            // Single selection (backward compatibility)
+                            <div className="border-l-4 border-green-500 pl-3">
+                              <p className="font-medium text-sm md:text-base text-gray-900">
+                                {letters[userAnswer]}. {question.options[userAnswer].text}
+                              </p>
+                              <div className="mt-1">
+                                <p className="text-xs text-gray-500 mb-1">Candidates who agree:</p>
+                                <div className="flex flex-wrap gap-1 md:gap-2">
+                                  {question.options[userAnswer].candidates.map((candidate, candidateIndex) => (
+                                    <span 
+                                      key={candidateIndex}
+                                      className="inline-block bg-blue-100 text-blue-800 text-xs md:text-sm px-2 md:px-3 py-1 rounded-full"
+                                    >
+                                      {candidate}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -316,7 +524,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
             </div>
           </div>
         </div>
-
         {/* Action Buttons */}
         <div className="text-center">
           <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
