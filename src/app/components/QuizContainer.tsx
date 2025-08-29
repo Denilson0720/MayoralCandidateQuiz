@@ -87,17 +87,30 @@ export default function QuizContainer() {
   // Check if user has reached the end of the quiz
   useEffect(() => {
     const currentIndex = getQuestionIndexById(currentQuestionId);
+    const answeredQuestions = Object.keys(answers).length;
+    
     if (currentIndex === questions.length - 1 && !showSubmit && !quizCompleted) {
-      setShowSubmit(true);
+      // Only show submit button if user has answered at least one question
+      if (answeredQuestions > 0) {
+        setShowSubmit(true);
+      }
     } else if (currentIndex < questions.length - 1 && showSubmit) {
       setShowSubmit(false);
     }
-  }, [currentQuestionId, showSubmit, quizCompleted, getQuestionIndexById]);
+  }, [currentQuestionId, showSubmit, quizCompleted, getQuestionIndexById, answers]);
 
   const handleSubmitQuiz = async () => {
     // Prevent duplicate submissions
     if (isSubmitting) {
       console.log('Quiz submission already in progress, ignoring duplicate click');
+      return;
+    }
+    
+    // Check if user has actually answered any questions
+    const answeredQuestions = Object.keys(answers).length;
+    if (answeredQuestions === 0) {
+      console.log('No questions answered, cannot submit quiz');
+      setIsSubmitting(false);
       return;
     }
     
@@ -340,6 +353,13 @@ export default function QuizContainer() {
   };
 
   const handleStartQuiz = () => {
+    // Reset any previous quiz state to ensure clean start
+    setAnswers({});
+    setQuizCompleted(false);
+    setQuizResults(null);
+    setCategoriesSelected(false);
+    setSelectedCategories([]);
+    
     setQuizStarted(true);
     setCategoriesSelected(true); // Allow questions to be shown
     setCurrentQuestionId(questions[0].id);
@@ -422,6 +442,17 @@ export default function QuizContainer() {
 
   // Show category selection after quiz completion
   if (quizCompleted && quizResults && !categoriesSelected) {
+    // Additional check to ensure we have valid results with answered questions
+    const answeredQuestions = Object.keys(answers).length;
+    if (answeredQuestions === 0) {
+      // If no questions were answered, reset the quiz state
+      console.log('No questions answered but quiz marked as completed, resetting state');
+      setQuizCompleted(false);
+      setQuizResults(null);
+      setCategoriesSelected(false);
+      return null; // This will cause the component to re-render and show the landing page
+    }
+    
     return (
       <CategorySelection onCategoriesSelected={handleCategoriesSelected} />
     );
@@ -658,8 +689,9 @@ export default function QuizContainer() {
                 {showSubmit ? (
                   <button
                     onClick={handleSubmitQuiz}
-                    disabled={isNavigating || isSubmitting}
+                    disabled={isNavigating || isSubmitting || Object.keys(answers).length === 0}
                     className="px-4 md:px-8 py-2 rounded-lg font-semibold transition-colors bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
+                    title={Object.keys(answers).length === 0 ? "Please answer at least one question to submit" : ""}
                   >
                     {isNavigating || isSubmitting ? 'Submitting...' : 'Submit Quiz'}
                   </button>
@@ -703,8 +735,9 @@ export default function QuizContainer() {
             {showSubmit ? (
               <button
                 onClick={handleSubmitQuiz}
-                disabled={isNavigating || isSubmitting}
+                disabled={isNavigating || isSubmitting || Object.keys(answers).length === 0}
                 className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                title={Object.keys(answers).length === 0 ? "Please answer at least one question to submit" : ""}
               >
                 {isNavigating || isSubmitting ? 'Submitting...' : 'Submit'}
               </button>
