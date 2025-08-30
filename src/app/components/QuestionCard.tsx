@@ -96,27 +96,40 @@ export default function QuestionCard({
           <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 w-full max-w-3xl flex flex-col justify-start items-start">
             {question.options.map((option, index) => (
               <div key={index} className="w-full">
-                <div
-                  onClick={() => handleOptionClick(index)}
-                  className={`flex flex-col items-center w-full text-left py-4 md:py-6 px-3 md:px-4 rounded-t-lg border-2 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
-                    selectedAnswers.includes(index)
-                      ? 'bg-green-200'
-                      : 'bg-white p-4 shadow-xl'
-                  } ${selectedAnswers.includes(index) && expandedOption === index ? 'rounded-b-none' : 'rounded-b-lg'}`}
-                >
-                  <div className='flex items-center w-full'>
+                <div className="flex items-stretch w-full">
+                  {/* Main Option Button */}
+                  <div
+                    onClick={() => handleOptionClick(index)}
+                    className={`flex-1 flex items-center text-left py-4 md:py-6 px-3 md:px-4 rounded-l-lg border-2 border-r-0 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
+                      selectedAnswers.includes(index)
+                        ? 'bg-green-200'
+                        : 'bg-white shadow-xl'
+                    }`}
+                  >
                     <div className='font-bold text-lg md:text-xl p-1'>{letters[index]}</div>
                     <div className="pl-2 md:pl-4 font-medium text-sm md:text-base flex-1">{option.text}</div>
                   </div>
-                  <span className='text-sm font-medium md:text-base hover:underline hover:font-bold '  onClick={(e) => handleToggleDropdown(index, e)}>{expandedOption === index ? 'hide details -' : 'view details +'}</span>
-
+                  
+                  {/* Details Toggle Button */}
+                  <button
+                    onClick={(e) => handleToggleDropdown(index, e)}
+                    className={`w-12 flex items-center justify-center border-2 border-l-0 border-black transition-all duration-300 ease-in-out hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
+                      selectedAnswers.includes(index) ? 'bg-blue-200' : 'bg-blue-50'
+                    } ${expandedOption === index ? 'rounded-br-lg' : 'rounded-r-lg'}`}
+                    title={expandedOption === index ? 'Hide details' : 'View details'}
+                    aria-label={expandedOption === index ? 'Hide candidate details' : 'View candidate details'}
+                  >
+                    <span className="text-xl font-bold text-blue-700 hover:text-blue-900">
+                      {expandedOption === index ? '−' : '+'}
+                    </span>
+                  </button>
                 </div>
                 
 
                 {/* Dropdown for candidates - improved animation */}
                 <div 
                   className={`
-                    overflow-hidden transition-all duration-300 ease-in-out bg-white border-x-2 border-b-2 rounded-b-lg border-t-0
+                    overflow-hidden transition-all duration-300 ease-in-out bg-white border-x-2 border-b-2 border-l-2 rounded-b-lg border-t-0
                     ${expandedOption === index 
                       ? 'max-h-[2000px] opacity-100 translate-y-0' 
                       : 'max-h-0 opacity-0 translate-y-2'

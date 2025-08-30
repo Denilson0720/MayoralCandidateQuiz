@@ -372,7 +372,8 @@ export default function AnalyticsPage() {
                     return (
                       <div
                         key={submission.id}
-                        className="border border-gray-200 rounded-lg p-4"
+                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => window.location.href = `/results/submission/${submission.id}`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center">
@@ -385,11 +386,16 @@ export default function AnalyticsPage() {
                               {topCandidate}
                             </span>
                           </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-green-600">
-                              {matchPercentage}%
+                          <div className="text-right flex items-center">
+                            <div>
+                              <div className="text-lg font-bold text-green-600">
+                                {matchPercentage}%
+                              </div>
+                              <div className="text-xs text-gray-500">match</div>
                             </div>
-                            <div className="text-xs text-gray-500">match</div>
+                            <svg className="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
                           </div>
                         </div>
                         <div className="text-xs text-gray-500">
@@ -401,6 +407,7 @@ export default function AnalyticsPage() {
                             </span>
                           )}
                           <span className="ml-2">• Quiz #{submission.id}</span>
+                          <span className="ml-2 text-blue-600">• Click to view details</span>
                         </div>
                       </div>
                     );
@@ -509,7 +516,7 @@ export default function AnalyticsPage() {
         )}
 
         {/* Candidate Breakdown */}
-        <div className="mt-8 bg-white rounded-lg shadow">
+        <div className="mt-8 bg-white rounded-lg shadow hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">
               Candidate Performance Breakdown

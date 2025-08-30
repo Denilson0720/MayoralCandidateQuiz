@@ -8,23 +8,23 @@ export enum candidateKeys {
     MCGREEVY = 'MCGREEVY'
 }
 
-// Map question IDs to their categories
+// Map question IDs to their categories (0-based to match UI question IDs)
 function getQuestionCategory(questionId: number): string {
   const categoryMap: Record<number, string> = {
-    1: 'transportation',
-    2: 'transportation', 
-    3: 'safety',
-    4: 'housing',
-    5: 'housing',
-    6: 'education',
-    7: 'education',
-    8: 'social',
-    9: 'social',
-    10: 'governance',
-    11: 'transportation',
-    12: 'governance',
-    13: 'governance',
-    14: 'governance'
+    0: 'transportation',  // Question 1 in UI (0-based)
+    1: 'transportation',  // Question 2 in UI (0-based)
+    2: 'safety',         // Question 3 in UI (0-based)
+    3: 'housing',        // Question 4 in UI (0-based)
+    4: 'housing',        // Question 5 in UI (0-based)
+    5: 'education',      // Question 6 in UI (0-based)
+    6: 'education',      // Question 7 in UI (0-based)
+    7: 'social',         // Question 8 in UI (0-based)
+    8: 'social',         // Question 9 in UI (0-based)
+    9: 'governance',     // Question 10 in UI (0-based)
+    10: 'transportation', // Question 11 in UI (0-based)
+    11: 'governance',    // Question 12 in UI (0-based)
+    12: 'governance',    // Question 13 in UI (0-based)
+    13: 'governance'     // Question 14 in UI (0-based)
   };
   return categoryMap[questionId] || 'other';
 }

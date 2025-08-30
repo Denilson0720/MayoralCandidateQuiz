@@ -128,6 +128,7 @@ async function calculateCandidateMatches(answers: Record<number, number[]>, sele
       LEFT JOIN candidates c ON qoc.candidate_id = c.id
       ORDER BY q.id, opt.option_label
     `;
+    
     const questionsResult = await pool.query(questionsQuery);
     
     // Group by question
@@ -146,18 +147,48 @@ async function calculateCandidateMatches(answers: Record<number, number[]>, sele
       const databaseQuestionId = parseInt(questionId) + 1;
       const questionData = questionsMap[databaseQuestionId];
       
+      console.log(`DB: Processing question ${questionId} (DB: ${databaseQuestionId}), answers: ${answerIndicesArray}, data:`, questionData);
+      
       if (questionData && answerIndicesArray.length > 0) {
         // Determine if this question belongs to a selected category
         const questionCategory = questionData[0].category;
-        const isWeightedQuestion = selectedCategories.includes(questionCategory);
+        
+        // Map UI category names to database category names
+        const categoryMapping: Record<string, string[]> = {
+          'housing': ['Housing Affordability', 'Housing', 'Development and Gentrification'],
+          'education': ['Charter Schools', 'Education', 'Public Schools', 'Education Quality'],
+          'social': ['Healthcare Access', 'Social Services', 'Community', 'Immigration'],
+          'transportation': ['Street Usage', 'Transportation', 'Transit', 'Turnpike Expansion'],
+          'safety': ['Public Safety', 'Crime Prevention'],
+          'governance': ['Government Collaboration', 'Transparency and Trust', 'Government', 'Leadership Style', 'Climate Resilience']
+        };
+        
+        // Check if any of the selected categories match this question's category
+        const isWeightedQuestion = selectedCategories.some(selectedCat => {
+          const mappedCategories = categoryMapping[selectedCat] || [selectedCat];
+          return mappedCategories.includes(questionCategory);
+        });
+        
         const weight = isWeightedQuestion ? 2 : 1; // Double points for selected categories
         
         // Count matches for each selected option
         answerIndicesArray.forEach(answerIndex => {
-          const selectedOption = questionData[answerIndex];
-          if (selectedOption && selectedOption.candidate_name) {
-            candidateScores[selectedOption.candidate_name] += weight;
-            candidateMatches[selectedOption.candidate_name] += weight;
+          // Convert answerIndex (0,1,2,3) to option_label ('A','B','C','D')
+          const optionLabels = ['A', 'B', 'C', 'D', 'E'];
+          const targetOptionLabel = optionLabels[answerIndex];
+          
+          // Find all options with this answerIndex (there might be multiple candidates per option)
+          const selectedOptions = questionData.filter(option => 
+            option.option_label === targetOptionLabel
+          );
+          
+          if (selectedOptions.length > 0) {
+            selectedOptions.forEach(selectedOption => {
+              if (selectedOption.candidate_name) {
+                candidateScores[selectedOption.candidate_name] += weight;
+                candidateMatches[selectedOption.candidate_name] += weight;
+              }
+            });
           }
         });
         
@@ -174,12 +205,15 @@ async function calculateCandidateMatches(answers: Record<number, number[]>, sele
     const totalPointsAccrued = Object.values(candidateScores).reduce((sum, val) => sum + val, 0);
 
     // Calculate match percentages and create results (matching UI logic)
-    const candidateMatchesResult = Object.keys(candidateScores).map(candidate => ({
-      candidate,
-      matchPercentage: totalPointsAccrued > 0 ? Math.round((candidateScores[candidate] / totalPointsAccrued) * 100) : 0,
-      matchingAnswers: candidateMatches[candidate],
-      totalPossibleMatches: totalPossibleMatches[candidate]
-    }));
+    const candidateMatchesResult = Object.keys(candidateScores).map(candidate => {
+      const matchPercentage = totalPointsAccrued > 0 ? Math.round((candidateScores[candidate] / totalPointsAccrued) * 100) : 0;
+      return {
+        candidate,
+        matchPercentage,
+        matchingAnswers: candidateMatches[candidate],
+        totalPossibleMatches: totalPossibleMatches[candidate]
+      };
+    });
 
     // Sort by match percentage (highest first)
     candidateMatchesResult.sort((a, b) => b.matchPercentage - a.matchPercentage);
