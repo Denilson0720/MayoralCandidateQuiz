@@ -1010,7 +1010,7 @@ export const questions: Question[] = [
       "What type of leadership does Jersey City need in its next mayor?",
     options: [
       {
-        text: "A seasoned insider with experience",
+        text: "A council member with experience",
         candidates: ["Bill Odea"],
         explanations: [
           {
@@ -1023,7 +1023,7 @@ export const questions: Question[] = [
         ],
       },
       {
-        text: "A seasoned executive with state and national connections",
+        text: "A former state official",
         candidates: ["Jim McGreevy"],
         explanations: [
           {
@@ -1036,14 +1036,14 @@ export const questions: Question[] = [
         ],
       },
       {
-        text: "A community-driven coalition-builder",
+        text: "A community-driven grassroots coalition-builder focused on building bridges between the old and new Jersey City",
         candidates: ["Mussab Ali"],
         explanations: [
           {
             candidate: "Mussab Ali",
-            quote:
-              "Mussab positions himself as a grassroots leader focused on organizing community voices and building inclusive governance structures.",
-            explanation: "",
+            quote:"Throughout my life, from battling cancer to advocating for educational equity, I’ve learned the value of resilience and community. Serving as the youngest member of the Jersey City Board of Education, and later, as its President, I fought for a fully funded budget, fair wages for our teachers, and the abolition of student lunch debt. These aren't just policies to me; they're personal commitments to our shared future.",
+            remark:"Mussab Ali",
+            explanation:"A son of Jersey City, Mussab Ali was raised here and understands the city's needs. He has a deep connection to the community and is running to represent his home and fix issues like affordability, healthcare and gentrification.",
             source: "Mussab Ali's platform",
             sourceLink: "https://www.ali2025.com/",
             sourceTitle: "ali2025.com",
