@@ -69,7 +69,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           <div style="text-align: center; margin-bottom: 20px;">
             <h3 style="font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #000;">${topCandidate.name}</h3>
             <p style="font-size: 16px; color: #666; margin-bottom: 10px;">${topCandidate.bio}</p>
-            <p style="font-size: 14px; color: #666;">${topCandidate.matchingAnswers} points</p>
           </div>
         </div>
 
@@ -81,7 +80,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                 <div style="text-align: center;">
                   <h3 style="font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #000;">${candidate.name}</h3>
                   <div style="font-size: 24px; font-weight: bold; color: #000; margin-bottom: 10px;">${candidate.matchPercentage}%</div>
-                  <p style="font-size: 14px; color: #666; margin-bottom: 10px;">${candidate.matchingAnswers} points</p>
                 </div>
               </div>
             `).join('')}
@@ -184,10 +182,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           <div className="text-center mb-4 md:mb-6">
             <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{topCandidate.name}</h3>
             <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">{topCandidate.bio}</p>
-            {/* Top candidate points display */}
-            <p className="text-xs md:text-sm text-gray-500">
-              {topCandidate.matchingAnswers} points
-            </p>
           </div>
 
           {/* Candidate Actions */}
@@ -288,10 +282,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                   <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                     {candidate.matchPercentage}%
                   </div>
-                  {/* All candidates points display */}
-                  <p className="text-xs md:text-sm text-gray-600 mb-2 md:mb-3">
-                    {candidate.matchingAnswers} points
-                  </p>
                   {candidate.website && (
                     <a 
                       href={candidate.website} 

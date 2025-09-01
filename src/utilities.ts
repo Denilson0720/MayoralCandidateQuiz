@@ -81,7 +81,7 @@ export const candidateValues: Record<string, CandidateInfo> = {
     },
     'James Solomon': {
         name: 'James Solomon',
-        url: 'https://res.cloudinary.com/duhazr5mo/image/upload/v1753058211/solomon_gxhl1q.png',
+        url: 'https://res.cloudinary.com/duhazr5mo/image/upload/v1756746053/solomon_tone1_wofhkw.png',
         website: 'https://solomonforjc.com',
         socialMedia: {
             twitter: 'https://twitter.com/jamessolomon',

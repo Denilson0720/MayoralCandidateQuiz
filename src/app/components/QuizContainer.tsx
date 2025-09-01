@@ -534,7 +534,7 @@ export default function QuizContainer() {
                       <img 
                         src={candidate.url} 
                         alt={candidate.name}
-                        className="w-32 h-32 md:w-48 md:h-48 mx-auto rounded-full object-cover border-4 border-white shadow-lg"
+                        className="bg-white w-32 h-32 md:w-48 md:h-48 mx-auto rounded-full object-cover border-4 border-white shadow-lg"
                       />
                       <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white px-3 md:px-4 py-1 rounded-full shadow-md border">
                         <span className="text-xs md:text-sm font-semibold text-gray-800">
