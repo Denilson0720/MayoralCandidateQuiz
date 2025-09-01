@@ -143,23 +143,6 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           <p className="text-lg md:text-xl text-gray-600 mb-4">
             You answered {results.answeredQuestions} out of {results.totalQuestions} questions
           </p>
-          {results.selectedCategories && results.selectedCategories.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-              <p className="text-sm text-blue-800 font-medium mb-2">
-                Your Priority Areas (Weighted 2x):
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {results.selectedCategories.map((category) => {
-                  const categoryInfo = categories.find(c => c.id === category);
-                  return (
-                    <span key={category} className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                      {categoryInfo?.name || category}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Top Match */}
@@ -257,8 +240,57 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           </div>
         </div>
 
+        {/* Weighing System Explanation */}
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
+          <h3 className="text-lg md:text-xl font-bold text-blue-900 mb-3 text-center">💡How Our Weighing System Works</h3>
+          <div className="space-y-3 text-sm md:text-base text-blue-800">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+              <div>
+                <strong>Category Selection:</strong> Your results are based on the categories you selected (Transportation, Public Safety, etc.)
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+              <div>
+                <strong>Answer Matching:</strong> We compare your answers to each candidate's positions on the same issues
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+              <div>
+                <strong>Weighted Scoring:</strong> Questions from your selected categories carry more weight in the final calculation, specifically 2x weight for each category selected. For example, if you selected Transportation and Safety as one of your preferred categories, the Transportation questions would be worth 2x the points.
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+              <div>
+                <strong>Percentage Match:</strong> The final percentage shows how well each candidate aligns with your priorities
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {results.selectedCategories && results.selectedCategories.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto flex justify-center items-center flex-col">
+              <p className="text-sm text-blue-800 font-medium mb-2">
+                Your Priority Areas (Weighted 2x):
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {results.selectedCategories.map((category) => {
+                  const categoryInfo = categories.find(c => c.id === category);
+                  return (
+                    <span key={category} className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
+                      {categoryInfo?.name || category}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         {/* All Candidates */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 mt-8">
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 text-center">All Candidates</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {results.candidateMatches.map((candidate, index) => (
