@@ -16,6 +16,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
   const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showPolicyBreakdown, setShowPolicyBreakdown] = useState(true);
   const letters = ["A", "B", "C", "D"];
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -272,15 +273,15 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
         </div>
 
         {results.selectedCategories && results.selectedCategories.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto flex justify-center items-center flex-col">
-              <p className="text-sm text-blue-800 font-medium mb-2">
+            <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+              <p className="text-lg text-green-800 font-medium mb-2 text-center">
                 Your Priority Areas (Weighted 2x):
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {results.selectedCategories.map((category) => {
                   const categoryInfo = categories.find(c => c.id === category);
                   return (
-                    <span key={category} className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
+                    <span key={category} className="bg-green-100 text-green-800 text-md font-medium px-3 py-1 rounded-full">
                       {categoryInfo?.name || category}
                     </span>
                   );
@@ -288,6 +289,127 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
               </div>
             </div>
           )}
+
+        {/* Priority Areas Section - Only show if Mussab is the top result */}
+        {topCandidate.name === 'Mussab Ali' && results.selectedCategories && results.selectedCategories.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+            <div className="text-center mb-4 md:mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">
+                🎉Your Priority Areas Matched These Policies for Mussab Ali🎉
+              </h2>
+              <button
+                onClick={() => setShowPolicyBreakdown(!showPolicyBreakdown)}
+                className="px-4 md:px-6 py-2 md:py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-sm md:text-base flex items-center gap-2 mx-auto"
+              >
+                {showPolicyBreakdown ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    Hide Policy Details
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    View Policy Details
+                  </>
+                )}
+              </button>
+            </div>
+            
+            {showPolicyBreakdown && (
+              <div className="space-y-4 md:space-y-6">
+              {results.selectedCategories.map((categoryId) => {
+                const categoryInfo = categories.find(c => c.id === categoryId);
+                if (!categoryInfo) return null;
+                
+                // First, collect all valid questions for this category
+                const validQuestions = categoryInfo.questionIds
+                  .map((questionId) => {
+                    const question = questions[questionId];
+                    if (!question) return null;
+                    
+                    const userAnswer = results.answers[questionId];
+                    if (!userAnswer || userAnswer.length === 0) return null;
+                    
+                    // Find Mussab's options for this question
+                    const mussabOptions = question.options.filter(option => 
+                      option.candidates.includes('Mussab Ali')
+                    );
+                    
+                    if (mussabOptions.length === 0) return null;
+                    
+                    return {
+                      questionId,
+                      question,
+                      mussabOptions
+                    };
+                  })
+                  .filter((item): item is { questionId: number; question: any; mussabOptions: any[] } => item !== null);
+                
+                // Only render the category box if there are valid questions
+                if (validQuestions.length === 0) return null;
+                
+                return (
+                  <div key={categoryId} className="border-2 border-green-200 rounded-lg p-4 md:p-6 bg-green-50">
+                    <h3 className="text-lg md:text-xl font-bold text-green-800 mb-3 md:mb-4">
+                      {categoryInfo.name}
+                    </h3>
+                    <div className="space-y-3 md:space-y-4">
+                      {validQuestions.map(({ questionId, question, mussabOptions }) => (
+                        <div key={questionId} className="bg-white rounded-lg p-3 md:p-4 border border-green-200">
+                          {/* <h4 className="font-semibold text-sm md:text-base text-gray-900 mb-2">
+                            {question.question}
+                          </h4> */}
+                          <div className="space-y-2">
+                            {mussabOptions.map((option: any, optionIndex: number) => (
+                              <div key={optionIndex} className="border-l-4 border-green-500 pl-3">
+                                <p className="text-sm md:text-base text-gray-800 font-bold">
+                                  💡{option.text}
+                                </p>
+                                {option.explanations && option.explanations.length > 0 && (
+                                  <div className="mt-2">
+                                    {option.explanations
+                                      .filter((explanation: any) => explanation.candidate === 'Mussab Ali')
+                                      .map((explanation: any, expIndex: number) => (
+                                        <div key={expIndex} className="text-xs md:text-sm text-gray-600 mt-1">
+                                          {explanation.quote && (
+                                            <blockquote className="italic border-l-2 border-green-300 pl-2 mb-1">
+                                              "{explanation.quote}"
+                                            </blockquote>
+                                          )}
+                                          {explanation.explanation && (
+                                            <p>{explanation.explanation}</p>
+                                          )}
+                                          {explanation.sourceLink && (
+                                            <a 
+                                              href={explanation.sourceLink} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 text-xs underline"
+                                            >
+                                              Learn more →
+                                            </a>
+                                          )}
+                                        </div>
+                                      ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* All Candidates */}
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 mt-8">
