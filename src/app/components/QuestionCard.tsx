@@ -187,28 +187,33 @@ export default function QuestionCard({
                 </div>
               </div>
             ))}
-          </div>
 
-          {/* Skip Question Option - Only show if no regular answers are selected */}
-          {!selectedAnswers.some(answer => answer !== -1) && (
-            <div className="w-full mt-4">
-              <div className="flex items-stretch w-full">
-                <div
-                  onClick={() => handleOptionClick(-1)} // Use -1 as skip indicator
-                  className={`flex-1 flex items-center text-left py-4 md:py-6 px-3 md:px-4 rounded-lg border-2 border-gray-400 transition-all duration-300 ease-in-out hover:cursor-pointer ${
-                    selectedAnswers.includes(-1)
-                      ? 'bg-yellow-200 border-yellow-500'
-                      : 'bg-gray-50 shadow-xl hover:bg-gray-100'
-                  }`}
-                >
-                  <div className='font-bold text-lg md:text-xl p-1 text-gray-600'>⏭️</div>
-                  <div className="pl-2 md:pl-4 font-medium text-sm md:text-base flex-1 text-gray-600">
-                    Skip this question
+            {/* Skip Question Option - Only show if no regular answers are selected */}
+            {!selectedAnswers.some(answer => answer !== -1) && (
+              <div className="w-full">
+                <div className="flex items-stretch w-full">
+                  <div
+                    onClick={() => handleOptionClick(-1)} // Use -1 as skip indicator
+                    className={`flex-1 flex items-center text-left py-4 md:py-6 px-3 md:px-4 rounded-l-lg border-2 border-r-0 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
+                      selectedAnswers.includes(-1)
+                        ? 'bg-yellow-200'
+                        : 'bg-white shadow-xl'
+                    }`}
+                  >
+                    <div className='font-bold text-lg md:text-xl p-1'>⏭️</div>
+                    <div className="pl-2 md:pl-4 font-medium text-sm md:text-base flex-1">Skip this question</div>
+                  </div>
+                  
+                  {/* Details Toggle Button - matching regular options */}
+                  <div className={`w-12 flex items-center justify-center border-2 border-l-0 border-black transition-all duration-300 ease-in-out ${
+                    selectedAnswers.includes(-1) ? 'bg-yellow-200' : 'bg-yellow-50'
+                  } rounded-r-lg`}>
+                    <span className="text-xl font-bold text-yellow-700">⏭️</span>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Helpful message for last question when no answers selected */}
           {isLast && selectedAnswers.length === 0 && (

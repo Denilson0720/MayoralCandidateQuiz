@@ -30,6 +30,7 @@ export default function QuizContainer() {
   const [isBetweenQuestions, setIsBetweenQuestions] = useState(false);
   const [showUnansweredAlert, setShowUnansweredAlert] = useState(false);
   const [unansweredQuestions, setUnansweredQuestions] = useState<number[]>([]);
+  const [isProgrammaticScrolling, setIsProgrammaticScrolling] = useState(false);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Helper function to get question index by ID
@@ -117,11 +118,12 @@ export default function QuizContainer() {
       if (stillUnanswered.length === 0) {
         setShowUnansweredAlert(false);
         setUnansweredQuestions([]);
-      } else {
+      } else if (stillUnanswered.length !== unansweredQuestions.length) {
+        // Only update if the array actually changed to prevent infinite loops
         setUnansweredQuestions(stillUnanswered);
       }
     }
-  }, [answers, showUnansweredAlert, unansweredQuestions]);
+  }, [answers, showUnansweredAlert]); // Removed unansweredQuestions from dependencies
 
   const handleSubmitQuiz = async () => {
     // Prevent duplicate submissions
@@ -218,7 +220,7 @@ export default function QuizContainer() {
 
   // Additional effect to manually check which question is most visible
   useEffect(() => {
-    if (!quizStarted || quizCompleted || isNavigating) return; // Don't check during navigation
+    if (!quizStarted || quizCompleted || isNavigating || isProgrammaticScrolling) return; // Don't check during navigation or programmatic scrolling
 
     const checkVisibleQuestion = () => {
       const questionElements = questionRefs.current.filter(Boolean);
@@ -266,6 +268,7 @@ export default function QuizContainer() {
       if (mostVisibleQuestionId !== currentQuestionId && maxVisibility >= 0.5 && !isBetween) {
         setCurrentQuestionId(mostVisibleQuestionId);
       }
+      
     };
 
     // Check immediately and then on scroll
@@ -283,11 +286,11 @@ export default function QuizContainer() {
       window.removeEventListener('scroll', handleScroll);
       clearTimeout((window as any).scrollTimeout);
     };
-  }, [quizStarted, quizCompleted, currentQuestionId, isNavigating]);
+  }, [quizStarted, quizCompleted, currentQuestionId, isNavigating, isProgrammaticScrolling]);
 
   // Effect to track when user is viewing questions vs landing page
   useEffect(() => {
-    if (!quizStarted || quizCompleted) return;
+    if (!quizStarted || quizCompleted || isProgrammaticScrolling) return;
 
     const checkIfViewingQuestions = () => {
       const questionsSection = document.querySelector('section[class*="pt-16"]');
@@ -312,7 +315,7 @@ export default function QuizContainer() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [quizStarted, quizCompleted]);
+  }, [quizStarted, quizCompleted, isProgrammaticScrolling]);
 
   // Handle smooth scrolling to questions
   useEffect(() => {
@@ -732,50 +735,80 @@ export default function QuizContainer() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => {
+                  if (unansweredQuestions.length > 0) {
+                    const firstUnanswered = unansweredQuestions[0];
+                    const questionIndex = firstUnanswered - 1;
+                    const question = questions[questionIndex];
+                    if (question) {
+                      // Set programmatic scrolling flag to disable visibility detection
+                      setIsProgrammaticScrolling(true);
+                      
+                      const questionElement = document.getElementById(`question-${question.id}`);
+                      if (questionElement) {
+                        // Brute force approach: keep scrolling until we reach the target
+                        const scrollToTarget = () => {
+                          const elementRect = questionElement.getBoundingClientRect();
+                          const absoluteElementTop = elementRect.top + window.pageYOffset;
+                          const offset = 100;
+                          const targetPosition = absoluteElementTop - offset;
+                          const currentScroll = window.pageYOffset;
+                          const distance = Math.abs(currentScroll - targetPosition);
+                          
+                          // If we're close enough (within 50px), we're done
+                          if (distance < 50) {
+                            setIsProgrammaticScrolling(false);
+                            setShowUnansweredAlert(false); // Hide the warning banner
+                            return;
+                          }
+                          
+                          // Scroll towards target
+                          window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                          });
+                          
+                          // Try again after a delay
+                          setTimeout(() => {
+                            const newElementRect = questionElement.getBoundingClientRect();
+                            const newCurrentScroll = window.pageYOffset;
+                            const newDistance = Math.abs(newCurrentScroll - targetPosition);
+                            
+                            // If we're still not there, try again
+                            if (newDistance > 50) {
+                              scrollToTarget();
+                            } else {
+                              setIsProgrammaticScrolling(false);
+                              setShowUnansweredAlert(false); // Hide the warning banner
+                            }
+                          }, 1500); // Wait 1.5 seconds for scroll to complete
+                        };
+                        
+                        // Start the scroll process
+                        scrollToTarget();
+                        
+                        // Fallback timeout
+                        setTimeout(() => {
+                          setIsProgrammaticScrolling(false);
+                          setShowUnansweredAlert(false); // Hide the warning banner
+                        }, 10000); // 10 second fallback
+                      } else {
+                        setIsProgrammaticScrolling(false);
+                      }
+                    }
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+              >
+                Scroll to Question
+              </button>
+              <button
                 onClick={() => setShowUnansweredAlert(false)}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
               >
                 Dismiss
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop Progress Dots - Only show on tablet and desktop */}
-      {categoriesSelected && (
-        <div className="fixed top-20 right-4 z-40 bg-white rounded-lg shadow-lg border border-gray-200 p-3 max-w-xs hidden md:block">
-          <div className="text-xs font-semibold text-gray-700 mb-2 text-center">Quiz Progress</div>
-          <div className="grid grid-cols-7 gap-1">
-            {questions.map((question, index) => {
-              const questionAnswers = answers[question.id] || [];
-              const isSkipped = questionAnswers.includes(-1);
-              const isAnswered = questionAnswers.length > 0 && !isSkipped;
-              const isCurrent = currentQuestionId === question.id;
-
-              return (
-                <div
-                  key={question.id}
-                  className={`w-8 h-8 text-xs font-medium rounded transition-all duration-200 flex items-center justify-center ${
-                    isCurrent
-                      ? 'bg-blue-500 text-white ring-2 ring-blue-300'
-                      : isAnswered
-                        ? 'bg-green-500 text-white'
-                        : isSkipped
-                          ? 'bg-yellow-500 text-white'
-                          : 'bg-red-500 text-white'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-xs text-gray-600 mt-2 text-center">
-            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-1"></span> Current
-            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1 ml-3"></span> Answered
-            <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1 ml-3"></span> Skipped
-            <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1 ml-3"></span> Unanswered
           </div>
         </div>
       )}
@@ -867,13 +900,6 @@ export default function QuizContainer() {
       {categoriesSelected && (
         <footer className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- p-3 z-50 md:hidden">
           <div className="flex gap-3 max-w-md mx-auto">
-            <button
-              onClick={handleSkipQuestion}
-              className="flex-1 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors text-xs"
-            >
-              Skip
-            </button>
-            
             {showSubmit ? (
               <button
                 onClick={handleSubmitQuiz}
