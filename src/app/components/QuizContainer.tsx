@@ -27,6 +27,9 @@ export default function QuizContainer() {
   const [currentCandidateIndex, setCurrentCandidateIndex] = useState(0);
   const [isViewingQuestions, setIsViewingQuestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBetweenQuestions, setIsBetweenQuestions] = useState(false);
+  const [showUnansweredAlert, setShowUnansweredAlert] = useState(false);
+  const [unansweredQuestions, setUnansweredQuestions] = useState<number[]>([]);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Helper function to get question index by ID
@@ -99,10 +102,47 @@ export default function QuizContainer() {
     }
   }, [currentQuestionId, showSubmit, quizCompleted, getQuestionIndexById, answers]);
 
+  // Hide unanswered alert when the user answers the questions
+  useEffect(() => {
+    if (showUnansweredAlert && unansweredQuestions.length > 0) {
+      // Check if any of the unanswered questions have been answered
+      const stillUnanswered = unansweredQuestions.filter(questionNumber => {
+        const questionIndex = questionNumber - 1;
+        const question = questions[questionIndex];
+        if (!question) return true;
+        const questionAnswers = answers[question.id] || [];
+        return questionAnswers.length === 0;
+      });
+      
+      if (stillUnanswered.length === 0) {
+        setShowUnansweredAlert(false);
+        setUnansweredQuestions([]);
+      } else {
+        setUnansweredQuestions(stillUnanswered);
+      }
+    }
+  }, [answers, showUnansweredAlert, unansweredQuestions]);
+
   const handleSubmitQuiz = async () => {
     // Prevent duplicate submissions
     if (isSubmitting) {
       console.log('Quiz submission already in progress, ignoring duplicate click');
+      return;
+    }
+    
+    // Check for unanswered questions
+    const unansweredQuestionsList: number[] = [];
+    questions.forEach((question, index) => {
+      const questionAnswers = answers[question.id] || [];
+      if (questionAnswers.length === 0) {
+        unansweredQuestionsList.push(index + 1); // Convert to 1-based question numbers
+      }
+    });
+    
+    // If there are unanswered questions, show notification banner
+    if (unansweredQuestionsList.length > 0) {
+      setUnansweredQuestions(unansweredQuestionsList);
+      setShowUnansweredAlert(true);
       return;
     }
     
@@ -184,28 +224,46 @@ export default function QuizContainer() {
       const questionElements = questionRefs.current.filter(Boolean);
       let mostVisibleQuestionId = currentQuestionId;
       let maxVisibility = 0;
+      let bestCenterDistance = Infinity;
+      let hasClearWinner = false;
 
       questionElements.forEach((element) => {
         if (!element) return;
         
         const rect = element.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
+        const viewportCenter = viewportHeight / 2;
         
         // Calculate how much of the element is visible
         const visibleTop = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
         const visibleHeight = Math.min(rect.height, viewportHeight);
         const visibility = visibleTop / visibleHeight;
+        
+        // Calculate distance from viewport center to element center
+        const elementCenter = rect.top + (rect.height / 2);
+        const centerDistance = Math.abs(elementCenter - viewportCenter);
 
-        if (visibility > maxVisibility) {
-          maxVisibility = visibility;
-          const questionId = parseInt(element.getAttribute('data-question-id') || '0');
-          if (typeof questionId === 'number' && questionId !== currentQuestionId) {
-            mostVisibleQuestionId = questionId;
+        // Only consider questions that are at least 50% visible
+        if (visibility >= 0.5) {
+          // Prefer questions closer to the center of the viewport
+          if (centerDistance < bestCenterDistance) {
+            bestCenterDistance = centerDistance;
+            maxVisibility = visibility;
+            const questionId = parseInt(element.getAttribute('data-question-id') || '0');
+            if (typeof questionId === 'number') {
+              mostVisibleQuestionId = questionId;
+              hasClearWinner = true;
+            }
           }
         }
       });
 
-      if (mostVisibleQuestionId !== currentQuestionId && maxVisibility > 0.3) {
+      // Check if we're between questions (no clear winner or low visibility)
+      const isBetween = !hasClearWinner || maxVisibility < 0.7;
+      setIsBetweenQuestions(isBetween);
+
+      // Only update if we found a significantly better question (more visible and closer to center)
+      if (mostVisibleQuestionId !== currentQuestionId && maxVisibility >= 0.5 && !isBetween) {
         setCurrentQuestionId(mostVisibleQuestionId);
       }
     };
@@ -214,9 +272,9 @@ export default function QuizContainer() {
     checkVisibleQuestion();
     
     const handleScroll = () => {
-      // Debounce scroll events
+      // Debounce scroll events with longer delay to reduce flickering
       clearTimeout((window as any).scrollTimeout);
-      (window as any).scrollTimeout = setTimeout(checkVisibleQuestion, 100);
+      (window as any).scrollTimeout = setTimeout(checkVisibleQuestion, 200);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -603,21 +661,29 @@ export default function QuizContainer() {
           <div className="sticky top-0 z-50 md:hidden bg-gradient-to-r from-cyan-200 from- via-slate-50 via-50% to-red-200 to- py-3">
             <div className="flex justify-center items-center px-4">
               <div className="flex space-x-2">
-                {questions.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      index < currentQuestionIndex
-                        ? 'bg-green-500' // Completed questions
-                        : index === currentQuestionIndex
-                        ? 'bg-blue-500' // Current question
-                        : 'bg-gray-300' // Future questions
-                    }`}
-                  />
-                ))}
+                {questions.map((question, index) => {
+                  const questionAnswers = answers[question.id] || [];
+                  const isSkipped = questionAnswers.includes(-1);
+                  const isAnswered = questionAnswers.length > 0 && !isSkipped;
+
+                  return (
+                    <div
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        index === currentQuestionIndex
+                          ? 'bg-blue-500' // Current question
+                          : isAnswered
+                            ? 'bg-green-500' // Completed questions (anywhere in quiz)
+                            : isSkipped
+                              ? 'bg-yellow-500' // Skipped questions (anywhere in quiz)
+                              : 'bg-red-500' // Unanswered questions
+                      }`}
+                    />
+                  );
+                })}
               </div>
               <div className="text-xs text-gray-600 font-medium title-font ml-4">
-                {currentQuestionIndex + 1}/{questions.length}
+                {isBetweenQuestions ? '-' : currentQuestionIndex + 1}/{questions.length}
               </div>
             </div>
           </div>
@@ -651,6 +717,69 @@ export default function QuizContainer() {
         </section>
       )}
 
+      {/* Unanswered Questions Notification Banner */}
+      {showUnansweredAlert && (
+        <div className="fixed bottom-16 left-0 right-0 bg-yellow-400 border-t-2 border-yellow-600 p-4 z-[60] shadow-lg">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="text-yellow-800 font-semibold text-sm md:text-base">
+                ⚠️ Please answer or skip all questions before submitting. 
+                {unansweredQuestions.length === 1 
+                  ? ` Question ${unansweredQuestions[0]} is unanswered.`
+                  : ` Questions ${unansweredQuestions.join(', ')} are unanswered.`
+                }
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowUnansweredAlert(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Progress Dots - Only show on tablet and desktop */}
+      {categoriesSelected && (
+        <div className="fixed top-20 right-4 z-40 bg-white rounded-lg shadow-lg border border-gray-200 p-3 max-w-xs hidden md:block">
+          <div className="text-xs font-semibold text-gray-700 mb-2 text-center">Quiz Progress</div>
+          <div className="grid grid-cols-7 gap-1">
+            {questions.map((question, index) => {
+              const questionAnswers = answers[question.id] || [];
+              const isSkipped = questionAnswers.includes(-1);
+              const isAnswered = questionAnswers.length > 0 && !isSkipped;
+              const isCurrent = currentQuestionId === question.id;
+
+              return (
+                <div
+                  key={question.id}
+                  className={`w-8 h-8 text-xs font-medium rounded transition-all duration-200 flex items-center justify-center ${
+                    isCurrent
+                      ? 'bg-blue-500 text-white ring-2 ring-blue-300'
+                      : isAnswered
+                        ? 'bg-green-500 text-white'
+                        : isSkipped
+                          ? 'bg-yellow-500 text-white'
+                          : 'bg-red-500 text-white'
+                  }`}
+                >
+                  {index + 1}
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-xs text-gray-600 mt-2 text-center">
+            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-1"></span> Current
+            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1 ml-3"></span> Answered
+            <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1 ml-3"></span> Skipped
+            <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1 ml-3"></span> Unanswered
+          </div>
+        </div>
+      )}
+
       {/* Desktop Footer - Only show on tablet and desktop */}
       {categoriesSelected && (
         <footer className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-2 md:p-4 z-50 hidden md:block">
@@ -659,17 +788,30 @@ export default function QuizContainer() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4 mb-2 md:mb-0">
               <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-4">
                 <span className="text-xs md:text-sm text-gray-600">
-                  Question {currentQuestionIndex + 1} of {questions.length}
+                  Question {isBetweenQuestions ? '-' : currentQuestionIndex + 1} of {questions.length}
                 </span>
-                <div className="w-24 md:w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-                  ></div>
+                <div className="flex space-x-2">
+                  {questions.map((question, index) => {
+                    const questionAnswers = answers[question.id] || [];
+                    const isSkipped = questionAnswers.includes(-1);
+                    const isAnswered = questionAnswers.length > 0 && !isSkipped;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
+                          index === currentQuestionIndex
+                            ? 'bg-blue-500' // Current question
+                            : isAnswered
+                              ? 'bg-green-500' // Completed questions (anywhere in quiz)
+                              : isSkipped
+                                ? 'bg-yellow-500' // Skipped questions (anywhere in quiz)
+                                : 'bg-red-500' // Unanswered questions
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
-                <span className="text-xs md:text-sm text-gray-600">
-                  {completionPercentage}% Complete
-                </span>
               </div>
 
               {/* Navigation Buttons - Mobile Optimized */}
