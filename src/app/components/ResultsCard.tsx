@@ -17,6 +17,8 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
   const [showAnswers, setShowAnswers] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showPolicyBreakdown, setShowPolicyBreakdown] = useState(true);
+  const [showMussabAlignment, setShowMussabAlignment] = useState(true);
+  const [showNoMatch, setShowNoMatch] = useState(true);
   const letters = ["A", "B", "C", "D"];
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -139,77 +141,69 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
         {/* Header */}
         <div className="text-center mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
-            Your Jersey City Mayoral Match Results
+            How Well Do You Align With Mussab Ali?
           </h1>
           <p className="text-lg md:text-xl text-gray-600 mb-4">
             You answered {results.answeredQuestions} out of {results.totalQuestions} questions
           </p>
         </div>
 
-        {/* Top Match */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 border-2 border-green-500">
-          <div className="text-center mb-4 md:mb-6">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Your Top Match</h2>
-            <div className="text-4xl md:text-6xl font-bold text-green-600 mb-3 md:mb-4">
-              {topCandidate.matchPercentage}%
+        {/* Mussab Match Percentage - Primary Focus */}
+        <div className="bg-white rounded-lg shadow-lg p-6 md:p-10 mb-6 md:mb-8 border-4 border-blue-500 relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-50 rounded-full translate-y-12 -translate-x-12"></div>
+          
+          <div className="relative z-10">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Your Mussab Match</h2>
+              <div className="text-6xl md:text-8xl font-bold text-blue-600 mb-4">
+                {results.mussabMatchPercentage}%
+              </div>
+              <p className="text-lg md:text-xl text-gray-600 mb-6">
+                {results.mussabMatchPercentage >= 80 ? "Excellent alignment! You share many of Mussab's views." :
+                 results.mussabMatchPercentage >= 60 ? "Good alignment! You agree with Mussab on many key issues." :
+                 results.mussabMatchPercentage >= 40 ? "Moderate alignment. You agree with Mussab on some important issues." :
+                 "Limited alignment. You have different perspectives on many issues."}
+              </p>
             </div>
-          </div>
-          
-          <div className="flex items-center justify-center mb-4 md:mb-6">
-            <img 
-              src={topCandidate.imageUrl} 
-              alt={topCandidate.name}
-              className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-green-500"
-            />
-          </div>
-          
-          <div className="text-center mb-4 md:mb-6">
-            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{topCandidate.name}</h3>
-            <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">{topCandidate.bio}</p>
-          </div>
+            
+            <div className="flex items-center justify-center mb-6 md:mb-8">
+              <img 
+                src="/mussab.png" 
+                alt="Mussab Ali"
+                className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-blue-500 shadow-lg"
+              />
+            </div>
+            
+            <div className="text-center mb-6 md:mb-8">
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Mussab Ali</h3>
+              <p className="text-base md:text-lg text-gray-600 mb-4 max-w-2xl mx-auto">
+                Community organizer and advocate for progressive policies in Jersey City. 
+                Focused on housing affordability, public safety, education, and transportation improvements.
+              </p>
+            </div>
 
-          {/* Candidate Actions */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mb-4 md:mb-6">
-            {topCandidate.website && (
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6">
               <a 
-                href={topCandidate.website} 
+                href="https://www.ali2025.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base text-center"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3 md:py-4 rounded-lg font-semibold transition-colors text-base md:text-lg text-center"
               >
-                Visit Website
+                Learn More About Mussab
               </a>
-            )}
-            <button 
-              onClick={() => handleShare('twitter')}
-              className="bg-blue-400 hover:bg-blue-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base"
-            >
-              Share on Twitter
-            </button>
-            <button 
-              onClick={handleDownloadPDF}
-              disabled={isGeneratingPDF}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base flex items-center gap-2"
-            >
-              {isGeneratingPDF ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Download PDF
-                </>
-              )}
-            </button>
+              <button 
+                onClick={() => handleShare('twitter')}
+                className="bg-blue-400 hover:bg-blue-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-lg font-semibold transition-colors text-base md:text-lg"
+              >
+                Share Your Match
+              </button>
+            </div>
           </div>
         </div>
+
 
         {/* Download Results Section */}
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
@@ -241,37 +235,262 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           </div>
         </div>
 
-        {/* Weighing System Explanation */}
+        {/* Mussab Match Explanation */}
         <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
-          <h3 className="text-lg md:text-xl font-bold text-blue-900 mb-3 text-center">💡How Our Weighing System Works</h3>
+          <h3 className="text-lg md:text-xl font-bold text-blue-900 mb-3 text-center">💡How Your Mussab Match is Calculated</h3>
           <div className="space-y-3 text-sm md:text-base text-blue-800">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</div>
               <div>
-                <strong>Category Selection:</strong> Your results are based on the categories you selected (Transportation, Public Safety, etc.)
+                <strong>Base Scoring:</strong> Each question is worth 7.14% (100% ÷ 14 questions)
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</div>
               <div>
-                <strong>Answer Matching:</strong> We compare your answers to each candidate's positions on the same issues
+                <strong>Full Match (7.14%):</strong> When you select only Mussab-only options for a question
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</div>
               <div>
-                <strong>Weighted Scoring:</strong> Questions from your selected categories carry more weight in the final calculation, specifically 2x weight for each category selected. For example, if you selected Transportation and Safety as one of your preferred categories, the Transportation questions would be worth 2x the points.
+                <strong>Partial Match (3.57%):</strong> When you select a mix of Mussab-only and Mussab+others options
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</div>
               <div>
-                <strong>Percentage Match:</strong> The final percentage shows how well each candidate aligns with your priorities
+                <strong>Priority Bonus:</strong> Partial matches in your priority areas get upgraded to full percentage (7.14%)
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">5</div>
+              <div>
+                <strong>Maximum Score:</strong> 100% if you match Mussab on all questions (with priority bonuses)
               </div>
             </div>
           </div>
         </div>
 
+
+        {results.selectedCategories && results.selectedCategories.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+              <p className="text-lg text-green-800 font-medium mb-2 text-center">
+                Your Priority Areas:
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {results.selectedCategories.map((category) => {
+                  const categoryInfo = categories.find(c => c.id === category);
+                  return (
+                    <span key={category} className="bg-green-100 text-green-800 text-md font-medium px-3 py-1 rounded-full">
+                      {categoryInfo?.name || category}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        {/* Policy Alignment Breakdown */}
+        <div className="space-y-6 md:space-y-8">
+          {/* Mussab Alignment - Green */}
+          {results.policyAlignment.mussabAlignment.length > 0 && (
+            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg md:text-xl font-bold text-green-900">
+                  🟢 Your Alignment with Mussab
+                </h3>
+                <button
+                  onClick={() => setShowMussabAlignment(!showMussabAlignment)}
+                  className="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-2"
+                >
+                  {showMussabAlignment ? 'Hide Section' : 'Show Section'}
+                  <svg 
+                    className={`w-4 h-4 transition-transform ${showMussabAlignment ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              {showMussabAlignment && (
+                <div className="space-y-4 md:space-y-6">
+                  {results.policyAlignment.mussabAlignment.map((alignment) => (
+                  <div key={alignment.questionId} className="bg-white rounded-lg p-4 md:p-6 border border-green-200">
+                    <div className="mb-3">
+                      <span className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full mb-2">
+                        {alignment.subtopic}
+                      </span>
+                      <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
+                        {alignment.question}
+                      </h4>
+                    </div>
+                    
+                    {/* User's Mussab selections */}
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-green-800 mb-2">✅ You selected:</p>
+                      <div className="space-y-2">
+                        {alignment.userMussabSelections.map((selection, index) => (
+                          <div key={index} className="border-l-4 border-green-500 pl-3">
+                            <p className="text-sm md:text-base text-gray-800">
+                              {selection.optionText}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* What else Mussab can do */}
+                    {alignment.mussabOtherOptions.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-blue-800 mb-2">💡 What else Mussab can do for you:</p>
+                        <div className="space-y-2">
+                          {alignment.mussabOtherOptions.map((option, index) => (
+                            <div key={index} className="border-l-4 border-blue-500 pl-3">
+                              <p className="text-sm md:text-base text-gray-800 font-bold">
+                                {option.optionText}
+                              </p>
+                              {option.explanations && option.explanations.length > 0 && (
+                                <div className="mt-2">
+                                  {option.explanations
+                                    .filter((explanation: any) => explanation.candidate === 'Mussab Ali')
+                                    .map((explanation: any, expIndex: number) => (
+                                      <div key={expIndex} className="text-xs md:text-sm text-gray-600 mt-1">
+                                        {explanation.quote && (
+                                          <blockquote className="italic border-l-2 border-green-300 pl-2 mb-1">
+                                            "{explanation.quote}"
+                                          </blockquote>
+                                        )}
+                                        {explanation.explanation && (
+                                          <p>{explanation.explanation}</p>
+                                        )}
+                                        {explanation.sourceLink && (
+                                          <a 
+                                            href={explanation.sourceLink} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 text-xs underline"
+                                          >
+                                            Learn more →
+                                          </a>
+                                        )}
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Policies Where You Didn't Match - Red */}
+          {results.policyAlignment.noMatch.length > 0 && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 md:p-6 mb-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg md:text-xl font-bold text-red-900">
+                  🔴 Policies Where You Didn't Match
+                </h3>
+                <button
+                  onClick={() => setShowNoMatch(!showNoMatch)}
+                  className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-2"
+                >
+                  {showNoMatch ? 'Hide Section' : 'Show Section'}
+                  <svg 
+                    className={`w-4 h-4 transition-transform ${showNoMatch ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              {showNoMatch && (
+                <div className="space-y-4 md:space-y-6">
+                  {results.policyAlignment.noMatch.map((noMatch) => (
+                  <div key={noMatch.questionId} className="bg-white rounded-lg p-4 md:p-6 border border-red-200">
+                    <div className="mb-3">
+                      <span className="inline-block bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full mb-2">
+                        {noMatch.subtopic}
+                      </span>
+                      <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
+                        {noMatch.question}
+                      </h4>
+                    </div>
+                    
+                    {/* User's selections */}
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-red-800 mb-2">❌ You selected:</p>
+                      <div className="space-y-2">
+                        {noMatch.userSelections.map((selection, index) => (
+                          <div key={index} className="border-l-4 border-red-500 pl-3">
+                            <p className="text-sm md:text-base text-gray-800">
+                              {selection.optionText}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Mussab's options */}
+                    <div>
+                      <p className="text-sm font-medium text-green-800 mb-2">✅ Mussab's position:</p>
+                      <div className="space-y-2">
+                        {noMatch.mussabOptions.map((option, index) => (
+                          <div key={index} className="border-l-4 border-green-500 pl-3">
+                            <p className="text-sm md:text-base text-gray-800 font-bold">
+                              {option.optionText}
+                            </p>
+                            {option.explanations && option.explanations.length > 0 && (
+                              <div className="mt-2">
+                                {option.explanations
+                                  .filter((explanation: any) => explanation.candidate === 'Mussab Ali')
+                                  .map((explanation: any, expIndex: number) => (
+                                    <div key={expIndex} className="text-xs md:text-sm text-gray-600 mt-1">
+                                      {explanation.quote && (
+                                        <blockquote className="italic border-l-2 border-green-300 pl-2 mb-1">
+                                          "{explanation.quote}"
+                                        </blockquote>
+                                      )}
+                                      {explanation.explanation && (
+                                        <p>{explanation.explanation}</p>
+                                      )}
+                                      {explanation.sourceLink && (
+                                        <a 
+                                          href={explanation.sourceLink} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 text-xs underline"
+                                        >
+                                          Learn more →
+                                        </a>
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* block that transitions to across all candidates section */}
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 my-10 text-center">View Your Match Across All Candidates</h1>
         {results.selectedCategories && results.selectedCategories.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
               <p className="text-lg text-green-800 font-medium mb-2 text-center">
@@ -410,6 +629,36 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
             )}
           </div>
         )}
+           {/* Candidate Match Explanation */}
+           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
+          <h3 className="text-lg md:text-xl font-bold text-blue-900 mb-3 text-center">💡How Candidate Match Percentages are Calculated</h3>
+          <div className="space-y-3 text-sm md:text-base text-blue-700">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+              <div>
+                <strong>Base Scoring:</strong> Each option you select gives points to all candidates who support that position
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+              <div>
+                <strong>Priority Weighting:</strong> Options in your selected priority areas count as 2x points
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+              <div>
+                <strong>Percentage Calculation:</strong> Each candidate's percentage = (Their total points ÷ All candidates' total points) × 100
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+              <div>
+                <strong>Example:</strong> If you selected 10 options and 3 were in priority areas, candidates get points for all 10 options, with the 3 priority options counting double
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* All Candidates */}
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 mt-8">

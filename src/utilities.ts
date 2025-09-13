@@ -46,6 +46,8 @@ export interface QuizResult {
     totalQuestions: number;
     answeredQuestions: number;
     completionPercentage: number;
+    mussabMatchPercentage: number;
+    policyAlignment: PolicyAlignment;
     timestamp: string;
     answers: Record<number, number[]>;
     selectedCategories: string[];
@@ -121,6 +123,191 @@ export const candidateValues: Record<string, CandidateInfo> = {
     }
 };
 
+// Calculate Mussab Match Percentage using new scoring system
+export function calculateMussabMatchPercentage(answers: Record<number, number[]>, questions: Question[], selectedCategories: string[] = []): number {
+    const POINTS_PER_QUESTION = 100 / 14; // 7.14% per question
+    const FULL_PERCENT = POINTS_PER_QUESTION;
+    const PARTIAL_PERCENT = POINTS_PER_QUESTION / 2; // 3.57%
+    
+    let totalScore = 0;
+    
+    questions.forEach(question => {
+        const userAnswers = answers[question.id];
+        if (!userAnswers || userAnswers.length === 0) return;
+        
+        // Determine if this question belongs to a selected priority category
+        const questionCategory = getQuestionCategory(question.id);
+        const isPriorityQuestion = selectedCategories.includes(questionCategory);
+        
+        // Get all Mussab options for this question
+        const mussabOptions = question.options.filter(option => 
+            option.candidates.includes('Mussab Ali')
+        );
+        
+        if (mussabOptions.length === 0) return;
+        
+        // Get user's selected options
+        const userSelectedOptions = userAnswers
+            .map(answerIndex => question.options[answerIndex])
+            .filter(option => option !== undefined);
+        
+        // Check if user selected any Mussab options
+        const userMussabSelections = userSelectedOptions.filter(option => 
+            option.candidates.includes('Mussab Ali')
+        );
+        
+        if (userMussabSelections.length === 0) {
+            // No Mussab selections - no points
+            return;
+        }
+        
+        // Determine if this is a full match or partial match
+        const hasOnlyMussabOptions = userMussabSelections.every(option => 
+            option.candidates.length === 1 && option.candidates[0] === 'Mussab Ali'
+        );
+        
+        let questionScore = 0;
+        
+        if (hasOnlyMussabOptions) {
+            // Full match - user selected only Mussab-only options
+            questionScore = FULL_PERCENT;
+        } else {
+            // Partial match - user selected mix of Mussab-only and Mussab+others
+            questionScore = PARTIAL_PERCENT;
+            
+            // If this is a priority question, upgrade partial to full
+            if (isPriorityQuestion) {
+                questionScore = FULL_PERCENT;
+            }
+        }
+        
+        totalScore += questionScore;
+    });
+    
+    return Math.round(totalScore);
+}
+
+export interface PolicyAlignment {
+    mussabAlignment: MussabAlignment[];
+    noMatch: PolicyNoMatch[];
+}
+
+export interface MussabAlignment {
+    questionId: number;
+    question: string;
+    subtopic: string;
+    userMussabSelections: {
+        optionIndex: number;
+        optionText: string;
+    }[];
+    mussabOtherOptions: {
+        optionIndex: number;
+        optionText: string;
+        explanations?: {
+            candidate: string;
+            quote?: string;
+            explanation: string;
+            source: string;
+            sourceLink?: string;
+            sourceTitle?: string;
+            remark?: string;
+        }[];
+    }[];
+}
+
+export interface PolicyNoMatch {
+    questionId: number;
+    question: string;
+    subtopic: string;
+    userSelections: {
+        optionIndex: number;
+        optionText: string;
+    }[];
+    mussabOptions: {
+        optionIndex: number;
+        optionText: string;
+        explanations?: {
+            candidate: string;
+            quote?: string;
+            explanation: string;
+            source: string;
+            sourceLink?: string;
+            sourceTitle?: string;
+            remark?: string;
+        }[];
+    }[];
+}
+
+// Analyze policy alignment between user and Mussab
+export function analyzePolicyAlignment(answers: Record<number, number[]>, questions: Question[]): PolicyAlignment {
+    const mussabAlignment: MussabAlignment[] = [];
+    const noMatch: PolicyNoMatch[] = [];
+    
+    questions.forEach(question => {
+        const userAnswers = answers[question.id];
+        if (!userAnswers || userAnswers.length === 0) return;
+        
+        // Get all Mussab options for this question
+        const mussabOptions = question.options
+            .map((option, index) => ({ optionIndex: index, optionText: option.text, option }))
+            .filter(item => item.option.candidates.includes('Mussab Ali'));
+        
+        // Get user's selections
+        const userSelections = userAnswers
+            .filter(answerIndex => question.options[answerIndex] !== undefined)
+            .map(answerIndex => ({
+                optionIndex: answerIndex,
+                optionText: question.options[answerIndex].text,
+                option: question.options[answerIndex]
+            }));
+        
+        // Check if user selected any Mussab options
+        const userMussabSelections = userSelections.filter(selection => 
+            selection.option.candidates.includes('Mussab Ali')
+        );
+        
+        if (userMussabSelections.length > 0) {
+            // User selected at least one Mussab option - goes in Mussab Alignment section
+            const mussabOtherOptions = mussabOptions.filter(mussabOption => 
+                !userMussabSelections.some(userSelection => userSelection.optionIndex === mussabOption.optionIndex)
+            );
+            
+            mussabAlignment.push({
+                questionId: question.id,
+                question: question.question,
+                subtopic: question.subtopic,
+                userMussabSelections: userMussabSelections.map(selection => ({
+                    optionIndex: selection.optionIndex,
+                    optionText: selection.optionText
+                })),
+                mussabOtherOptions: mussabOtherOptions.map(option => ({
+                    optionIndex: option.optionIndex,
+                    optionText: option.optionText,
+                    explanations: option.option.explanations
+                }))
+            });
+        } else {
+            // No match - user selected no Mussab options
+            noMatch.push({
+                questionId: question.id,
+                question: question.question,
+                subtopic: question.subtopic,
+                userSelections: userSelections.map(selection => ({
+                    optionIndex: selection.optionIndex,
+                    optionText: selection.optionText
+                })),
+                mussabOptions: mussabOptions.map(option => ({
+                    optionIndex: option.optionIndex,
+                    optionText: option.optionText,
+                    explanations: option.option.explanations
+                }))
+            });
+        }
+    });
+    
+    return { mussabAlignment, noMatch };
+}
+
 // Calculate quiz results based on user answers
 export function calculateQuizResults(answers: Record<number, number[]>, questions: Question[], selectedCategories: string[] = []): QuizResult {
     const candidateScores: Record<string, number> = {};
@@ -187,11 +374,19 @@ export function calculateQuizResults(answers: Record<number, number[]>, question
     // Sort by match percentage (highest first)
     candidateMatchResults.sort((a, b) => b.matchPercentage - a.matchPercentage);
 
+    // Calculate Mussab Match Percentage
+    const mussabMatchPercentage = calculateMussabMatchPercentage(answers, questions, selectedCategories);
+
+    // Analyze policy alignment
+    const policyAlignment = analyzePolicyAlignment(answers, questions);
+
     return {
         candidateMatches: candidateMatchResults,
         totalQuestions: questions.length,
         answeredQuestions: Object.keys(answers).filter(qid => answers[parseInt(qid)] && answers[parseInt(qid)].length > 0).length,
         completionPercentage: Math.round((Object.keys(answers).filter(qid => answers[parseInt(qid)] && answers[parseInt(qid)].length > 0).length / questions.length) * 100),
+        mussabMatchPercentage,
+        policyAlignment,
         timestamp: new Date().toISOString(),
         answers,
         selectedCategories
