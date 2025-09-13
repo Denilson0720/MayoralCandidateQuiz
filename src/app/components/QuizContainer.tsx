@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import QuestionCard from './QuestionCard';
 import ResultsCard from './ResultsCard';
 import CategorySelection, { categories } from './CategorySelection';
+import Toast from './Toast';
 import { questions, type Question } from '@/questions';
 import { calculateQuizResults, saveQuizResults, loadQuizResults, type QuizResult, candidateValues } from '@/utilities';
 
@@ -31,6 +32,9 @@ export default function QuizContainer() {
   const [showUnansweredAlert, setShowUnansweredAlert] = useState(false);
   const [unansweredQuestions, setUnansweredQuestions] = useState<number[]>([]);
   const [isProgrammaticScrolling, setIsProgrammaticScrolling] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastDismissed, setToastDismissed] = useState(false);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Helper function to get question index by ID
@@ -103,9 +107,9 @@ export default function QuizContainer() {
     }
   }, [currentQuestionId, showSubmit, quizCompleted, getQuestionIndexById, answers]);
 
-  // Hide unanswered alert when the user answers the questions
+  // Hide unanswered alert/toast when the user answers the questions
   useEffect(() => {
-    if (showUnansweredAlert && unansweredQuestions.length > 0) {
+    if ((showUnansweredAlert || showToast) && unansweredQuestions.length > 0) {
       // Check if any of the unanswered questions have been answered
       const stillUnanswered = unansweredQuestions.filter(questionNumber => {
         const questionIndex = questionNumber - 1;
@@ -117,13 +121,34 @@ export default function QuizContainer() {
       
       if (stillUnanswered.length === 0) {
         setShowUnansweredAlert(false);
+        setShowToast(false);
+        setToastDismissed(false); // Reset dismissed state when all questions are answered
         setUnansweredQuestions([]);
       } else if (stillUnanswered.length !== unansweredQuestions.length) {
         // Only update if the array actually changed to prevent infinite loops
         setUnansweredQuestions(stillUnanswered);
       }
     }
-  }, [answers, showUnansweredAlert]); // Removed unansweredQuestions from dependencies
+  }, [answers, showUnansweredAlert, showToast]); // Removed unansweredQuestions from dependencies
+
+  // Auto-dismiss toast when user reaches an unanswered question (but not immediately)
+  useEffect(() => {
+    if (showToast && unansweredQuestions.length > 0 && !toastDismissed) {
+      const currentIndex = getQuestionIndexById(currentQuestionId);
+      const currentQuestionNumber = currentIndex + 1;
+      
+      // Only dismiss if user navigated to an unanswered question (not if they were already there)
+      if (unansweredQuestions.includes(currentQuestionNumber)) {
+        // Add a small delay to ensure the user can see they've reached the question
+        const timer = setTimeout(() => {
+          setShowToast(false);
+          setToastDismissed(true);
+        }, 1000); // 1 second delay
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentQuestionId, showToast, unansweredQuestions, getQuestionIndexById, toastDismissed]);
 
   const handleSubmitQuiz = async () => {
     // Prevent duplicate submissions
@@ -141,10 +166,15 @@ export default function QuizContainer() {
       }
     });
     
-    // If there are unanswered questions, show notification banner
+    // If there are unanswered questions, show toast notification
     if (unansweredQuestionsList.length > 0) {
       setUnansweredQuestions(unansweredQuestionsList);
-      setShowUnansweredAlert(true);
+      const message = unansweredQuestionsList.length === 1 
+        ? `Please answer or skip all questions before submitting. Question ${unansweredQuestionsList[0]} is unanswered.`
+        : `Please answer or skip all questions before submitting. Questions ${unansweredQuestionsList.join(', ')} are unanswered.`;
+      setToastMessage(message);
+      setToastDismissed(false); // Reset dismissed state
+      setShowToast(true);
       return;
     }
     
@@ -189,12 +219,12 @@ export default function QuizContainer() {
 
   // Intersection Observer to track which question is currently visible
   useEffect(() => {
-    if (!quizStarted || quizCompleted || isNavigating) return; // Don't observe during navigation
+    if (!quizStarted || quizCompleted || isNavigating || isProgrammaticScrolling) return; // Don't observe during navigation or programmatic scrolling
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) { // Increased threshold to 0.5
             const questionId = parseInt(entry.target.getAttribute('data-question-id') || '0');
             if (typeof questionId === 'number' && questionId !== currentQuestionId) {
               setCurrentQuestionId(questionId);
@@ -203,8 +233,8 @@ export default function QuizContainer() {
         });
       },
       {
-        threshold: [0.3, 0.5, 0.7], // Multiple thresholds for better detection
-        rootMargin: '-10% 0px -10% 0px' // Smaller margin for more precise detection
+        threshold: [0.5, 0.7, 0.9], // Higher thresholds for more stable detection
+        rootMargin: '-20% 0px -20% 0px' // Larger margin to create more stable zones
       }
     );
 
@@ -216,7 +246,7 @@ export default function QuizContainer() {
     });
 
     return () => observer.disconnect();
-  }, [quizStarted, quizCompleted, currentQuestionId, isNavigating]);
+  }, [quizStarted, quizCompleted, currentQuestionId, isNavigating, isProgrammaticScrolling]);
 
   // Additional effect to manually check which question is most visible
   useEffect(() => {
@@ -245,8 +275,8 @@ export default function QuizContainer() {
         const elementCenter = rect.top + (rect.height / 2);
         const centerDistance = Math.abs(elementCenter - viewportCenter);
 
-        // Only consider questions that are at least 50% visible
-        if (visibility >= 0.5) {
+        // Only consider questions that are at least 60% visible (increased from 50%)
+        if (visibility >= 0.6) {
           // Prefer questions closer to the center of the viewport
           if (centerDistance < bestCenterDistance) {
             bestCenterDistance = centerDistance;
@@ -265,7 +295,7 @@ export default function QuizContainer() {
       setIsBetweenQuestions(isBetween);
 
       // Only update if we found a significantly better question (more visible and closer to center)
-      if (mostVisibleQuestionId !== currentQuestionId && maxVisibility >= 0.5 && !isBetween) {
+      if (mostVisibleQuestionId !== currentQuestionId && maxVisibility >= 0.6 && !isBetween) {
         setCurrentQuestionId(mostVisibleQuestionId);
       }
       
@@ -467,6 +497,50 @@ export default function QuizContainer() {
     }, 100);
   };
 
+  const handleNavigateToUnansweredQuestion = () => {
+    if (unansweredQuestions.length > 0) {
+      const firstUnanswered = unansweredQuestions[0];
+      const questionIndex = firstUnanswered - 1;
+      const question = questions[questionIndex];
+      if (question) {
+        // Set programmatic scrolling flag to disable visibility detection
+        setIsProgrammaticScrolling(true);
+        
+        const questionElement = document.getElementById(`question-${question.id}`);
+        if (questionElement) {
+          // Calculate target position with more generous offset to ensure full visibility
+          const elementRect = questionElement.getBoundingClientRect();
+          const absoluteElementTop = elementRect.top + window.pageYOffset;
+          const offset = 150; // Increased offset to ensure question is fully visible
+          const targetPosition = absoluteElementTop - offset;
+          
+          // Scroll to target position
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+          
+          // Set the current question ID immediately to prevent intersection observer conflicts
+          setCurrentQuestionId(question.id);
+          
+          // Wait for scroll to complete, then re-enable intersection observer
+          setTimeout(() => {
+            setIsProgrammaticScrolling(false);
+            setShowToast(false); // Hide the toast
+            setToastDismissed(true);
+          }, 2000); // Increased delay to ensure scroll completes
+        } else {
+          setIsProgrammaticScrolling(false);
+        }
+      }
+    }
+  };
+
+  const handleDismissToast = () => {
+    setShowToast(false);
+    setToastDismissed(true);
+  };
+
   // Helper: Get all unique, valid question IDs from categories
   const validQuestionIds = new Set<number>(questions.map(q => q.id));
   const allCategoryQuestionIds = Array.from(new Set(categories.flatMap(cat => cat.questionIds))).filter(id => validQuestionIds.has(id));
@@ -550,10 +624,10 @@ export default function QuizContainer() {
       <section className="min-h-screen text-center flex flex-col lg:flex-row p-10">
           <div className='flex flex-col justify-center items-center w-full lg:w-[60%] px-4 lg:px-8'>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 lg:mb-8 title-font">
-              Jersey City Mayoral Candidate Quiz
+              See How Well Mussab Ali Aligns With Your Views
             </h1>
             <p className="text-xl md:text-2xl lg:text-3xl text-gray-600 my-4 px-4">
-              Find your perfect candidate for mayor of Jersey City in 2 minutes.
+            Take this 2-minute quiz to explore how your stances on housing, education, public safety, and other key issues align with Mussab’s vision for Jersey City.
             </p>
             <div className='flex flex-col justify-center items-center sm:flex-row gap-4 w-full max-w-md'>
               <button 
@@ -574,8 +648,8 @@ export default function QuizContainer() {
           {/* Candidate Carousel */}
                       <div className="relative w-full max-w-sm">
             <div className="text-center mb-6 lg:mb-8">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Meet the Candidates</h2>
-              <p className="text-sm md:text-base text-gray-600">Take the quiz to see who aligns with your views</p>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">💡Candidate Spotlight💡</h2>
+              {/* <p className="text-sm md:text-base text-gray-600">Take the quiz to see who aligns with your views</p> */}
             </div>
             
             <div className="relative h-64 md:h-80">
@@ -720,98 +794,16 @@ export default function QuizContainer() {
         </section>
       )}
 
-      {/* Unanswered Questions Notification Banner */}
-      {showUnansweredAlert && (
-        <div className="fixed bottom-16 left-0 right-0 bg-yellow-400 border-t-2 border-yellow-600 p-4 z-[60] shadow-lg">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="text-yellow-800 font-semibold text-sm md:text-base">
-                ⚠️ Please answer or skip all questions before submitting. 
-                {unansweredQuestions.length === 1 
-                  ? ` Question ${unansweredQuestions[0]} is unanswered.`
-                  : ` Questions ${unansweredQuestions.join(', ')} are unanswered.`
-                }
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  if (unansweredQuestions.length > 0) {
-                    const firstUnanswered = unansweredQuestions[0];
-                    const questionIndex = firstUnanswered - 1;
-                    const question = questions[questionIndex];
-                    if (question) {
-                      // Set programmatic scrolling flag to disable visibility detection
-                      setIsProgrammaticScrolling(true);
-                      
-                      const questionElement = document.getElementById(`question-${question.id}`);
-                      if (questionElement) {
-                        // Brute force approach: keep scrolling until we reach the target
-                        const scrollToTarget = () => {
-                          const elementRect = questionElement.getBoundingClientRect();
-                          const absoluteElementTop = elementRect.top + window.pageYOffset;
-                          const offset = 100;
-                          const targetPosition = absoluteElementTop - offset;
-                          const currentScroll = window.pageYOffset;
-                          const distance = Math.abs(currentScroll - targetPosition);
-                          
-                          // If we're close enough (within 50px), we're done
-                          if (distance < 50) {
-                            setIsProgrammaticScrolling(false);
-                            setShowUnansweredAlert(false); // Hide the warning banner
-                            return;
-                          }
-                          
-                          // Scroll towards target
-                          window.scrollTo({
-                            top: targetPosition,
-                            behavior: 'smooth'
-                          });
-                          
-                          // Try again after a delay
-                          setTimeout(() => {
-                            const newElementRect = questionElement.getBoundingClientRect();
-                            const newCurrentScroll = window.pageYOffset;
-                            const newDistance = Math.abs(newCurrentScroll - targetPosition);
-                            
-                            // If we're still not there, try again
-                            if (newDistance > 50) {
-                              scrollToTarget();
-                            } else {
-                              setIsProgrammaticScrolling(false);
-                              setShowUnansweredAlert(false); // Hide the warning banner
-                            }
-                          }, 1500); // Wait 1.5 seconds for scroll to complete
-                        };
-                        
-                        // Start the scroll process
-                        scrollToTarget();
-                        
-                        // Fallback timeout
-                        setTimeout(() => {
-                          setIsProgrammaticScrolling(false);
-                          setShowUnansweredAlert(false); // Hide the warning banner
-                        }, 10000); // 10 second fallback
-                      } else {
-                        setIsProgrammaticScrolling(false);
-                      }
-                    }
-                  }
-                }}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-              >
-                Scroll to Question
-              </button>
-              <button
-                onClick={() => setShowUnansweredAlert(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Toast Notification for Unanswered Questions */}
+      <Toast
+        message={toastMessage}
+        type="warning"
+        isVisible={showToast}
+        onDismiss={handleDismissToast}
+        onNavigateToQuestion={handleNavigateToUnansweredQuestion}
+        showNavigateButton={true}
+        navigateButtonText="Go to Question"
+      />
 
       {/* Desktop Footer - Only show on tablet and desktop */}
       {categoriesSelected && (

@@ -214,17 +214,6 @@ export default function QuestionCard({
               </div>
             )}
           </div>
-
-          {/* Helpful message for last question when no answers selected */}
-          {isLast && selectedAnswers.length === 0 && (
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800 text-center">
-                💡 Please select at least one option above to submit your quiz and see your results!
-              </p>
-            </div>
-          )}
-
-
         </div>
       </div>
     </div>
