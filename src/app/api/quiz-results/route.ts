@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { calculateMussabMatchPercentage } from '@/utilities';
+import { questions } from '@/questions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,14 +25,18 @@ export async function POST(request: NextRequest) {
         completion_percentage,
         selected_categories,
         candidate_matches,
+        mussab_match_percentage,
         user_agent,
         ip_address
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id
     `;
 
     // Calculate candidate matches for storage
     const candidateMatches = await calculateCandidateMatches(answers, selectedCategories);
+    
+    // Calculate Mussab Match Percentage using the new scoring system
+    const mussabMatchPercentage = calculateMussabMatchPercentage(answers, questions, selectedCategories);
     
     const quizResultValues = [
       totalQuestions,
@@ -38,6 +44,7 @@ export async function POST(request: NextRequest) {
       completionPercentage,
       JSON.stringify(selectedCategories),
       JSON.stringify(candidateMatches),
+      mussabMatchPercentage,
       userAgent || null,
       ipAddress || null
     ];
@@ -72,7 +79,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       quizResultId,
-      candidateMatches 
+      candidateMatches,
+      mussabMatchPercentage
     });
 
   } catch (error) {
