@@ -19,6 +19,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
   const [showPolicyBreakdown, setShowPolicyBreakdown] = useState(true);
   const [showMussabAlignment, setShowMussabAlignment] = useState(true);
   const [showNoMatch, setShowNoMatch] = useState(true);
+  const [isImageFlipped, setIsImageFlipped] = useState(false);
   const letters = ["A", "B", "C", "D"];
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -169,11 +170,49 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
             </div>
             
             <div className="flex items-center justify-center mb-6 md:mb-8">
-              <img 
-                src="/mussab.png" 
-                alt="Mussab Ali"
-                className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-blue-500 shadow-lg"
-              />
+              <div 
+                className="relative w-32 h-32 md:w-40 md:h-40 cursor-pointer"
+                onMouseEnter={() => setIsImageFlipped(true)}
+                onMouseLeave={() => setIsImageFlipped(false)}
+                style={{ perspective: '1000px' }}
+              >
+                <div 
+                  className={`relative w-full h-full transition-transform duration-700 ease-in-out ${
+                    isImageFlipped ? 'rotate-y-180' : ''
+                  }`}
+                  style={{ 
+                    transformStyle: 'preserve-3d',
+                    transform: isImageFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                  }}
+                >
+                  {/* Front side - original image */}
+                  <div 
+                    className="absolute inset-0 w-full h-full rounded-full border-4 border-blue-500 shadow-lg"
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    <img 
+                      src="/mussab.png" 
+                      alt="Mussab Ali"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                  
+                  {/* Back side - new image */}
+                  <div 
+                    className="absolute inset-0 w-full h-full rounded-full border-4 border-blue-500 shadow-lg"
+                    style={{ 
+                      backfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)'
+                    }}
+                  >
+                    <img 
+                      src="https://res.cloudinary.com/duhazr5mo/image/upload/v1758079278/mussab_ellitb.jpg" 
+                      alt="Mussab Ali"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div className="text-center mb-6 md:mb-8">
