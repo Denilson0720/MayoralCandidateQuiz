@@ -91,16 +91,21 @@ export default function QuestionCard({
               💡 You can select multiple options that you agree with. Click on an option to select/deselect it.
             </p>
           </div>
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              💡 You can view the candidates who agree with each option by clicking the expansion button.
+            </p>
+          </div>
 
           {/* Answer Options */}
           <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 w-full max-w-3xl flex flex-col justify-start items-start">
             {question.options.map((option, index) => (
               <div key={index} className="w-full">
-                <div className="flex items-stretch w-full">
+                <div className="flex items-stretch w-full gap-2">
                   {/* Main Option Button */}
                   <div
                     onClick={() => handleOptionClick(index)}
-                    className={`flex-1 flex items-center text-left py-4 md:py-6 px-3 md:px-4 rounded-l-lg border-2 border-r-0 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
+                    className={`flex-1 flex items-center text-left py-4 md:py-6 px-3 md:px-4 rounded-lg border-2 border-black transition-all duration-300 ease-in-out hover:cursor-pointer ${
                       selectedAnswers.includes(index)
                         ? 'bg-green-200'
                         : 'bg-white shadow-xl'
@@ -113,15 +118,25 @@ export default function QuestionCard({
                   {/* Details Toggle Button */}
                   <button
                     onClick={(e) => handleToggleDropdown(index, e)}
-                    className={`w-12 flex items-center justify-center border-2 border-l-0 border-black transition-all duration-300 ease-in-out hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
-                      selectedAnswers.includes(index) ? 'bg-blue-200' : 'bg-blue-50'
-                    } ${expandedOption === index ? 'rounded-br-lg' : 'rounded-r-lg'}`}
+                    className="w-12 flex items-center justify-center rounded-lg border-2 border-black transition-all duration-300 ease-in-out hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-inset bg-yellow-50"
                     title={expandedOption === index ? 'Hide details' : 'View details'}
                     aria-label={expandedOption === index ? 'Hide candidate details' : 'View candidate details'}
                   >
-                    <span className="text-xl font-bold text-blue-700 hover:text-blue-900">
-                      {expandedOption === index ? '−' : '+'}
-                    </span>
+                    <svg 
+                      className={`w-5 h-5 text-yellow-700 hover:text-yellow-900 transition-transform duration-200 ${
+                        expandedOption === index ? 'rotate-180' : ''
+                      }`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M19 9l-7 7-7-7" 
+                      />
+                    </svg>
                   </button>
                 </div>
                 
@@ -129,7 +144,7 @@ export default function QuestionCard({
                 {/* Dropdown for candidates - improved animation */}
                 <div 
                   className={`
-                    overflow-hidden transition-all duration-300 ease-in-out bg-white border-x-2 border-b-2 border-l-2 rounded-b-lg border-t-0
+                    overflow-hidden transition-all duration-300 ease-in-out bg-white border-2 border-black rounded-lg mt-2
                     ${expandedOption === index 
                       ? 'max-h-[2000px] opacity-100 translate-y-0' 
                       : 'max-h-0 opacity-0 translate-y-2'
@@ -181,6 +196,7 @@ export default function QuestionCard({
                         showDetails={showDetails}
                         setShowDetails={setShowDetails}
                         candidateValues={candidateValues}
+                        isExpanded={expandedOption === index}
                       />
                     )}
                   </div>

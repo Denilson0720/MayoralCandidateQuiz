@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CandidateExplanation, Option as QuestionOption } from '@/questions';
 
 interface CandidateInfo {
@@ -12,6 +12,7 @@ interface ExplanationDropdownProps {
   showDetails: number | null;
   setShowDetails: (index: number | null) => void;
   candidateValues: Record<string, CandidateInfo>;
+  isExpanded: boolean;
 }
 
 const ExplanationDropdown: React.FC<ExplanationDropdownProps> = ({
@@ -20,20 +21,31 @@ const ExplanationDropdown: React.FC<ExplanationDropdownProps> = ({
   showDetails,
   setShowDetails,
   candidateValues,
+  isExpanded,
 }) => {
+  // Local state to track if user has explicitly hidden details for this option
+  const [userHiddenDetails, setUserHiddenDetails] = useState(false);
+
+  // Reset userHiddenDetails when the option is collapsed
+  useEffect(() => {
+    if (!isExpanded) {
+      setUserHiddenDetails(false);
+    }
+  }, [isExpanded]);
   return (
     <div className="mt-4 pt-3 border-t border-gray-200">
       <button
         onClick={() => {
-          setShowDetails(showDetails === index ? null : index);
+          // Toggle the userHiddenDetails state
+          setUserHiddenDetails(!userHiddenDetails);
           console.log(option.explanations);
         }}
         className="text-blue-600 hover:text-blue-800 text-xs md:text-sm font-medium transition-colors"
       >
-        {showDetails === index ? 'Hide Details' : 'More Details'}
+        {userHiddenDetails ? 'More Details' : 'Hide Details'}
       </button>
       {/* Details Dropdown */}
-      {showDetails === index && option.explanations && option.explanations.length > 0 && (
+      {!userHiddenDetails && (showDetails === index || isExpanded) && option.explanations && option.explanations.length > 0 && (
         <div className="mt-3 space-y-3">
           {option.explanations.map((explanation, expIndex) => (
             <div key={expIndex} className="bg-gray-50 p-3 rounded-lg">
