@@ -11,6 +11,9 @@ interface QuizSubmission {
   answered_questions: number;
   total_questions: number;
   selected_categories?: string | string[];
+  email?: string;
+  mussab_match_percentage?: number;
+  timestamp?: string;
 }
 
 interface CandidateStat {
@@ -35,6 +38,17 @@ interface QuestionOption {
   candidate_names: string;
 }
 
+interface EmailData {
+  id: number;
+  email: string;
+  timestamp: string;
+  total_questions: number;
+  answered_questions: number;
+  completion_percentage: number;
+  mussab_match_percentage: number;
+  selected_categories: string[];
+}
+
 interface QuestionAnalytics {
   question_id: number;
   category: string;
@@ -53,6 +67,178 @@ interface AnalyticsData {
     totalAttempts: number;
     categories: string[];
   };
+}
+
+function EmailManagementBox() {
+  const [days, setDays] = useState(7);
+  const [emails, setEmails] = useState<EmailData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchEmails = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/admin/emails?days=${days}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setEmails(data.emails);
+      } else {
+        setError(data.error || 'Failed to fetch emails');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadCSV = () => {
+    if (emails.length === 0) return;
+
+    const headers = [
+      'ID',
+      'Email',
+      'Timestamp',
+      'Total Questions',
+      'Answered Questions',
+      'Completion Percentage',
+      'Mussab Match Percentage',
+      'Selected Categories'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...emails.map(email => [
+        email.id,
+        `"${email.email}"`,
+        `"${new Date(email.timestamp).toLocaleString()}"`,
+        email.total_questions,
+        email.answered_questions,
+        email.completion_percentage,
+        email.mussab_match_percentage,
+        `"${Array.isArray(email.selected_categories) ? email.selected_categories.join('; ') : email.selected_categories || ''}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `newsletter-emails-${days}-days-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-gray-900">Newsletter Email Management</h2>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="days-filter" className="text-sm font-medium text-gray-700">
+              Last
+            </label>
+            <input
+              id="days-filter"
+              type="number"
+              min="1"
+              max="365"
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value))}
+              className="w-20 px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <span className="text-sm text-gray-700">days</span>
+          </div>
+          <button
+            onClick={fetchEmails}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            {loading ? 'Loading...' : 'Fetch Emails'}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      {emails.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Found {emails.length} email{emails.length !== 1 ? 's' : ''} from the last {days} days
+            </p>
+            <button
+              onClick={downloadCSV}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download CSV
+            </button>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-md">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mussab Match %
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Categories
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {emails.map((email) => (
+                  <tr key={email.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {email.email}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {new Date(email.timestamp).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {email.mussab_match_percentage}%
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {Array.isArray(email.selected_categories) 
+                        ? email.selected_categories.join(', ') 
+                        : email.selected_categories || 'None'
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {emails.length === 0 && !loading && !error && (
+        <div className="text-center py-8 text-gray-500">
+          <p>No emails found for the selected time period.</p>
+          <p className="text-sm mt-1">Click "Fetch Emails" to search for newsletter signups.</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AnalyticsPage() {
@@ -165,6 +351,9 @@ export default function AnalyticsPage() {
             Insights from Jersey City Mayoral Quiz submissions
           </p>
         </div>
+
+        {/* Email Management Box */}
+        <EmailManagementBox />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -382,11 +571,33 @@ export default function AnalyticsPage() {
                                 {index + 1}
                               </span>
                             </div>
-                            <span className="ml-2 text-sm font-medium text-gray-900">
-                              {topCandidate}
-                            </span>
+                            <div className="ml-2">
+                              <div className="text-sm font-medium text-gray-900">
+                                {topCandidate}
+                              </div>
+                              {submission.email && (
+                                <div className="text-xs text-blue-600">
+                                  📧 {submission.email}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <div className="text-right flex items-center">
+                            {submission.mussab_match_percentage !== null && submission.mussab_match_percentage !== undefined ? (
+                              <div className="mr-4">
+                                <div className="text-sm font-bold text-blue-600">
+                                  {submission.mussab_match_percentage}%
+                                </div>
+                                <div className="text-xs text-gray-500">Mussab</div>
+                              </div>
+                            ) : (
+                              <div className="mr-4">
+                                <div className="text-sm font-bold text-gray-400">
+                                  N/A
+                                </div>
+                                <div className="text-xs text-gray-400">Mussab</div>
+                              </div>
+                            )}
                             <div>
                               <div className="text-lg font-bold text-green-600">
                                 {matchPercentage}%
@@ -404,6 +615,11 @@ export default function AnalyticsPage() {
                           {selectedCategories.length > 0 && (
                             <span className="ml-2">
                               • {selectedCategories.length} priority categories
+                            </span>
+                          )}
+                          {submission.timestamp && (
+                            <span className="ml-2">
+                              • {new Date(submission.timestamp).toLocaleDateString()}
                             </span>
                           )}
                           <span className="ml-2">• Quiz #{submission.id}</span>

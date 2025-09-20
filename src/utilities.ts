@@ -51,6 +51,7 @@ export interface QuizResult {
     timestamp: string;
     answers: Record<number, number[]>;
     selectedCategories: string[];
+    quizResultId?: number;
 }
 
 export interface CandidateMatch {
@@ -422,6 +423,14 @@ export async function saveQuizResults(results: QuizResult): Promise<boolean> {
 
         const data = await response.json();
         console.log('Quiz results saved to database:', data);
+        
+        // Store the quiz ID along with results in localStorage
+        const resultsWithId = {
+            ...results,
+            quizResultId: data.quizResultId
+        };
+        localStorage.setItem('jerseyCityQuizResults', JSON.stringify(resultsWithId));
+        
         return true;
     } catch (error) {
         console.error('Error saving quiz results:', error);

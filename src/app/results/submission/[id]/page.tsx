@@ -17,6 +17,8 @@ interface QuizSubmission {
   answered_questions: number;
   total_questions: number;
   selected_categories: string[];
+  mussab_match_percentage?: number;
+  email?: string;
   answers: Record<number, number[]>;
   submitted_at: string;
 }
@@ -122,6 +124,11 @@ export default function SubmissionDetailPage() {
               </h1>
               <p className="text-gray-600">
                 Submitted on {submittedDate}
+                {submission.email && (
+                  <span className="ml-4 text-blue-600">
+                    📧 {submission.email}
+                  </span>
+                )}
               </p>
             </div>
             <button
@@ -136,7 +143,7 @@ export default function SubmissionDetailPage() {
         {/* Results Summary */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Results Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Top Match */}
             <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <h3 className="text-lg font-semibold text-green-800 mb-2">Top Match</h3>
@@ -148,13 +155,26 @@ export default function SubmissionDetailPage() {
               </div>
             </div>
 
-            {/* Completion */}
+            {/* Mussab Match */}
             <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="text-lg font-semibold text-blue-800 mb-2">Completion</h3>
+              <h3 className="text-lg font-semibold text-blue-800 mb-2">Mussab Match</h3>
               <div className="text-3xl font-bold text-blue-600 mb-2">
+                {submission.mussab_match_percentage !== null && submission.mussab_match_percentage !== undefined 
+                  ? `${submission.mussab_match_percentage}%` 
+                  : 'N/A'}
+              </div>
+              <div className="text-lg font-medium text-blue-800">
+                Mussab Ali
+              </div>
+            </div>
+
+            {/* Completion */}
+            <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Completion</h3>
+              <div className="text-3xl font-bold text-gray-600 mb-2">
                 {submission.completion_percentage}%
               </div>
-              <div className="text-sm text-blue-600">
+              <div className="text-sm text-gray-600">
                 {submission.answered_questions} of {submission.total_questions} questions
               </div>
             </div>

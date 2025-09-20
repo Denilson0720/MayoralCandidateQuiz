@@ -43,7 +43,10 @@ export async function GET() {
           qr.candidate_matches,
           qr.answered_questions,
           qr.total_questions,
-          qr.selected_categories
+          qr.selected_categories,
+          qr.email,
+          qr.mussab_match_percentage,
+          qr.timestamp
         FROM quiz_results qr
         ORDER BY qr.id DESC
         LIMIT 5

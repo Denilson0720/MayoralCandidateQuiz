@@ -483,6 +483,11 @@ export default function QuizContainer() {
         const saveSuccess = await saveQuizResults(weightedResults);
         if (saveSuccess) {
           console.log('Final quiz results with categories saved successfully');
+          // Reload results from localStorage to get the updated data with quizResultId
+          const updatedResults = loadQuizResults();
+          if (updatedResults) {
+            setQuizResults(updatedResults);
+          }
         } else {
           console.warn('Final quiz results saved to localStorage only');
         }

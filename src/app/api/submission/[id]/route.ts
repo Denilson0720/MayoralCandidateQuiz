@@ -16,7 +16,10 @@ export async function GET(
         candidate_matches,
         answered_questions,
         total_questions,
-        selected_categories
+        selected_categories,
+        mussab_match_percentage,
+        email,
+        timestamp
       FROM quiz_results 
       WHERE id = $1
     `;
@@ -75,8 +78,10 @@ export async function GET(
              answered_questions: submission.answered_questions,
              total_questions: submission.total_questions,
              selected_categories: selectedCategories,
+             mussab_match_percentage: submission.mussab_match_percentage,
+             email: submission.email,
              answers: answers,
-             submitted_at: new Date().toISOString() // Use current time as fallback
+             submitted_at: submission.timestamp || new Date().toISOString()
            });
     
   } catch (error) {
