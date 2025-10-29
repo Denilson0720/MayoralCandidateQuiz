@@ -350,7 +350,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
         </div>
 
         {/* Download Results Section */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
+        {/* <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8">
           <div className="text-center">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Save Your Results</h2>
             <p className="text-gray-600 mb-6">Download a PDF copy of your quiz results to keep for reference</p>
@@ -377,7 +377,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
               )}
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Mussab Match Explanation */}
         <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
