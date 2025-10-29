@@ -392,7 +392,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</div>
               <div>
-                <strong>Full Match (7.14%):</strong> When you select only Mussab-only options for a question
+                <strong>Full Match (7.14%):</strong> When you select Mussab-only options for a question
               </div>
             </div>
             <div className="flex items-start space-x-3">
