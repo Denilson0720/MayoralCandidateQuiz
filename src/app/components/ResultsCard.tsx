@@ -774,7 +774,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
           </div>
         )}
            {/* Candidate Match Explanation */}
-           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 md:p-6 mb-6 md:mb-8 hidden">
           <h3 className="text-lg md:text-xl font-bold text-blue-900 mb-3 text-center">💡How Candidate Match Percentages are Calculated</h3>
           <div className="space-y-3 text-sm md:text-base text-blue-700">
             <div className="flex items-start space-x-3">
@@ -805,7 +805,7 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
         </div>
 
         {/* All Candidates */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 mt-8">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6 md:mb-8 mt-8 hidden">
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 text-center">All Candidates</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {results.candidateMatches.map((candidate, index) => (
@@ -1008,12 +1008,9 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                         <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 text-center">What&apos;s Next?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="text-center p-4 md:p-6 border-2 border-gray-200 rounded-lg">
-              <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Learn More About Candidates</h3>
-              <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">
-                Visit candidate websites and social media to learn more about their platforms.
-              </p>
+              <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Learn more about Mussab</h3>
               <div className="space-y-1 md:space-y-2">
-                {results.candidateMatches.slice(0, 3).map(candidate => (
+                {/* {results.candidateMatches.slice(0, 3).map(candidate => (
                   <a 
                     key={candidate.candidate}
                     href={candidate.website || '#'} 
@@ -1023,7 +1020,15 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                   >
                     {candidate.name} →
                   </a>
-                ))}
+                ))} */}
+                <a href="https://www.ali2025.com" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">ali2025.com→</a>
+                <a href="https://www.ali2025.com/platform#affordablehousing" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Mussab's on Affordable Housing→</a>
+                <a href="https://www.ali2025.com/platform#economicdevelopment" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Mussab's on Economic Development→</a>
+                <a href="https://www.ali2025.com/platform#education" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Mussab's on Education→</a>
+                <a href="https://www.ali2025.com/platform#transportation" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Mussab's on Transportation→</a>
+                <a href="https://www.ali2025.com/platform#publicsafety" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Mussab's on Public Safety→</a>
+                <a href="https://www.ali2025.com/platform#trumpdefense" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Mussab's on Trump Defense→</a>
+
               </div>
             </div>
             
@@ -1033,6 +1038,8 @@ export default function ResultsCard({ results, onRetakeQuiz }: ResultsCardProps)
                   Make sure you&apos;re registered to vote and stay informed about the election.
                 </p>
               <div className="space-y-1 md:space-y-2">
+              <a href="https://www.ali2025.com/volenteer" className="block text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">Sign up to volenteer →</a>
+
                 <a 
                   href="https://voter.svrs.nj.gov/register" 
                   target="_blank" 

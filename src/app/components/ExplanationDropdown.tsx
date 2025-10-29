@@ -76,7 +76,7 @@ const ExplanationDropdown: React.FC<ExplanationDropdownProps> = ({
                         "{explanation.quote}"{explanation.remark ? ` -- ${explanation.remark}` : ''}
                       </blockquote>
                     )}
-                    {explanation.sourceLink && explanation.sourceTitle && (
+                    {explanation.sourceLink && explanation.sourceTitle && explanation.candidate == 'Mussab Ali' && (
                       <div className="mt-2">
                         <a
                           href={explanation.sourceLink}

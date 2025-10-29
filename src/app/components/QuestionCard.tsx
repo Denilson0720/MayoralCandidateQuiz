@@ -156,6 +156,7 @@ export default function QuestionCard({
                       Candidates who agree:
                     </h4>
                     <div className="flex flex-wrap gap-2 md:gap-3 justify-center">
+                      {/* if candidate not mussab, hide link */}
                       {option.candidates.map((candidate, candidateIndex) => (
                         <div key={`${index}-${candidateIndex}`} className='flex flex-col items-center'>
                           {candidateValues[candidate] ? (
